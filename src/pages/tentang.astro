@@ -1,0 +1,244 @@
+---
+/**
+ * tentang.astro
+ * Halaman Tentang Cloudsi — hero 50vh, timeline, visi & misi
+ * Dependencies: BaseLayout, Header, Footer, PageTransition, Timeline, supabase.ts
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Footer from '../components/layout/Footer.astro';
+import PageTransition from '../components/layout/PageTransition.astro';
+import PerjalananKami from '../components/sections/PerjalananKami.astro';
+import { getTimeline } from '../lib/supabase';
+
+const timeline = await getTimeline();
+---
+
+<BaseLayout title="Tentang | Cloudsi | Sistem Informasi Untan" description="Dalam satu ruang kami adalah keluarga besar Sistem Informasi Universitas Tanjungpura, penggerak teknologi masa depan.">
+  <PageTransition>
+    <main id="main-content">
+
+      <!-- Hero mini 50vh -->
+      <section class="tentang-hero" aria-label="Hero Tentang">
+        <div class="container-main tentang-hero-inner">
+          <h1 class="tentang-title" data-tentang-anim>Tentang Cloudsi</h1>
+          <p class="tentang-sub" data-tentang-anim>Sejak 4 Agustus 2025</p>
+        </div>
+      </section>
+
+      <!-- Narasi -->
+      <section class="tentang-narasi section-pad">
+        <div class="container-main">
+          <blockquote class="narasi-quote">
+            <p>Perjalanan Cloudsi seperti langit yang terus bergerak —
+            setiap momen terekam, setiap langkah bermakna.</p>
+          </blockquote>
+        </div>
+      </section>
+
+      <!-- Timeline: Perjalanan Kami (Baru) -->
+      <PerjalananKami />
+
+      <!-- Visi & Misi -->
+      <section class="tentang-visimisi section-pad" aria-label="Visi dan Misi">
+        <div class="container-main">
+          <h2 class="section-heading">Visi &amp; Misi</h2>
+          <div class="visimisi-grid">
+
+            <!-- Visi -->
+            <div class="glass visimisi-card">
+              <span class="visimisi-icon" aria-hidden="true">✦</span>
+              <h3 class="visimisi-title">Visi</h3>
+              <p class="visimisi-body">
+                Menjadi angkatan Sistem Informasi yang solid, inovatif,
+                dan berkontribusi nyata bagi masyarakat digital Indonesia.
+              </p>
+            </div>
+
+            <!-- Misi -->
+            <div class="glass visimisi-card">
+              <span class="visimisi-icon" aria-hidden="true">◈</span>
+              <h3 class="visimisi-title">Misi</h3>
+              <ul class="visimisi-list">
+                <li>Membangun koneksi dan kerja sama antar anggota angkatan.</li>
+                <li>Mendorong pengembangan skill teknis dan soft-skill.</li>
+                <li>Berkontribusi dalam kegiatan akademik dan kemahasiswaan.</li>
+                <li>Menciptakan lingkungan belajar yang suportif dan inklusif.</li>
+              </ul>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </PageTransition>
+  <Footer />
+</BaseLayout>
+
+<style>
+  /* Hero 50vh */
+  .tentang-hero {
+    position: relative;
+    height: 50vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    text-align: center;
+  }
+
+  .tentang-hero-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .tentang-title {
+    font-family: var(--font-display);
+    font-size: var(--font-size-h1);
+    font-weight: 300;
+    letter-spacing: 0.1em;
+    color: white;
+    margin: 0;
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.8s cubic-bezier(0.23, 1, 0.32, 1), transform 0.8s cubic-bezier(0.23, 1, 0.32, 1);
+    will-change: transform, opacity;
+  }
+
+  .tentang-sub {
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    color: var(--color-accent-gold);
+    font-style: italic;
+    letter-spacing: 0.08em;
+    margin-top: 0.75rem;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.8s cubic-bezier(0.23, 1, 0.32, 1) 0.15s, transform 0.8s cubic-bezier(0.23, 1, 0.32, 1) 0.15s;
+    will-change: transform, opacity;
+  }
+
+  /* Narasi */
+  .narasi-quote {
+    max-width: 700px;
+    margin: 0 auto;
+    text-align: center;
+    padding: 0;
+    border: none;
+  }
+
+  .narasi-quote p {
+    font-family: var(--font-display);
+    font-size: clamp(1.1rem, 2.5vw, 1.5rem);
+    font-style: italic;
+    color: hsla(0, 0%, 100%, 0.7);
+    line-height: 1.8;
+  }
+
+  /* Section heading */
+  .section-heading {
+    font-family: var(--font-display);
+    font-size: var(--font-size-h2);
+    font-weight: 300;
+    color: white;
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+
+  /* Visi & Misi */
+  .visimisi-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+
+  .visimisi-card {
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .visimisi-icon {
+    font-size: 2rem;
+    color: var(--color-water-light);
+    margin-bottom: 1rem;
+    line-height: 1;
+  }
+
+  .visimisi-title {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: white;
+    margin: 0 0 1rem 0;
+  }
+
+  .visimisi-body {
+    font-family: var(--font-body);
+    font-size: var(--font-size-body);
+    color: hsla(0, 0%, 100%, 0.7);
+    line-height: 1.8;
+    margin: 0;
+  }
+
+  .visimisi-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .visimisi-list li {
+    font-family: var(--font-body);
+    font-size: var(--font-size-body);
+    color: hsla(0, 0%, 100%, 0.7);
+    line-height: 1.7;
+    padding-left: 1.25rem;
+    position: relative;
+  }
+
+  .visimisi-list li::before {
+    content: '·';
+    position: absolute;
+    left: 0;
+    color: var(--color-water-light);
+    font-weight: 700;
+    font-size: 1.2rem;
+  }
+
+  @media (max-width: 768px) {
+    .visimisi-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<script is:inline>
+  (function() {
+    function initTentang() {
+      var animEls = document.querySelectorAll('[data-tentang-anim]');
+
+      function showAll() {
+        animEls.forEach(function(el) {
+          el.style.opacity = '1';
+          el.style.transform = 'none';
+        });
+      }
+
+      var prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (prefersReduced) { showAll(); return; }
+
+      // FEATURE: Hero Animation
+      // Memicu fade-in langsung mendahului Global Scroll Observer
+      requestAnimationFrame(function() {
+        setTimeout(showAll, 50); // Jeda mini agar masuk setelah ViewTransition kelar
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', initTentang);
+    document.addEventListener('astro:after-swap', initTentang);
+  })();
+</script>

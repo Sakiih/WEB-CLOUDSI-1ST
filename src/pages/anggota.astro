@@ -1,0 +1,552 @@
+---
+/**
+ * anggota.astro
+ * Halaman Anggota — daftar lengkap profil anggota angkatan
+ * Data: dari file lokal src/data/members-data.ts
+ * Fallback: Supabase via getMembers() jika data lokal kosong
+ */
+
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Footer from "../components/layout/Footer.astro";
+import PageTransition from "../components/layout/PageTransition.astro";
+import MemberCard from "../components/ui/MemberCard.astro";
+import { MEMBERS_DATA } from "../data/members-data";
+import { getMembers } from "../lib/supabase";
+
+// Gunakan data lokal. Jika kosong, fallback ke Supabase.
+const supabaseMembers = await getMembers();
+const members = supabaseMembers.length > 0 ? supabaseMembers : MEMBERS_DATA;
+
+// Data sudah diurutkan di members-data.ts:
+// Pengurus Inti → DEV (Srilintang) → Anggota by NIM ascending
+// Tidak perlu sort ulang.
+const sortedMembers = members;
+---
+
+<BaseLayout
+  title="Anggota | Cloudsi | Sistem Informasi Untan"
+  description="Dalam satu ruang kami adalah keluarga besar Sistem Informasi Universitas Tanjungpura, penggerak teknologi masa depan."
+>
+  <PageTransition>
+    <main id="main-content">
+      <!-- 40vh Hero Section -->
+      <section class="anggota-hero" aria-label="Hero Anggota">
+        <div class="anggota-hero-content hero-fade-up">
+          <h1 class="hero-title">Mahasiswa Cloudsi</h1>
+          <p class="hero-counter">Dalam satu Angkatan</p>
+        </div>
+      </section>
+
+      <!-- Directory Section -->
+      <section class="anggota-directory section-pad">
+        <div class="container-main">
+          <!-- Search & Filter Bar (Glass Style) -->
+          <div class="search-filter-bar glass fade-in">
+            <div class="search-wrap">
+              <svg
+                class="search-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                ><circle cx="11" cy="11" r="8"></circle><line
+                  x1="21"
+                  y1="21"
+                  x2="16.65"
+                  y2="16.65"></line></svg
+              >
+              <input
+                type="text"
+                id="member-search"
+                class="search-input"
+                placeholder="Cari berdasarkan nama atau panggilan..."
+              />
+            </div>
+
+            <div class="filter-wrap custom-dropdown" id="role-dropdown-wrap">
+              <!-- Select asli disembunyikan untuk logic -->
+              <select
+                id="member-role-filter"
+                class="filter-select"
+                style="display: none;"
+              >
+                <option value="Semua">Semua Peran</option>
+                <option value="Pengurus">Pengurus Inti</option>
+                <option value="Anggota">Anggota Biasa</option>
+              </select>
+
+              <!-- UI Dropdown Kaca Kustom -->
+              <button
+                type="button"
+                class="dropdown-trigger"
+                id="role-dropdown-trigger"
+                aria-haspopup="listbox"
+                aria-expanded="false"
+              >
+                <span id="role-dropdown-label">Semua Peran</span>
+                <svg
+                  class="dropdown-icon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  ><polyline points="6 9 12 15 18 9"></polyline></svg
+                >
+              </button>
+
+              <ul
+                class="dropdown-list"
+                id="role-dropdown-list"
+                role="listbox"
+                aria-hidden="true"
+              >
+                <li
+                  class="dropdown-option is-selected"
+                  role="option"
+                  data-value="Semua"
+                >
+                  Semua Peran
+                </li>
+                <li class="dropdown-option" role="option" data-value="Pengurus">
+                  Pengurus Inti
+                </li>
+                <li class="dropdown-option" role="option" data-value="Anggota">
+                  Anggota Biasa
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Grid Anggota -->
+          <div class="members-grid fade-in" id="members-grid">
+            {
+              sortedMembers.map((member) => (
+                <div
+                  class="member-item"
+                  data-name={member.full_name.toLowerCase()}
+                  data-nickname={(member.nickname || "").toLowerCase()}
+                  data-role={member.role}
+                >
+                  <MemberCard member={member} />
+                </div>
+              ))
+            }
+          </div>
+
+          <!-- Empty State -->
+          <div class="empty-state" id="empty-state" style="display: none;">
+            <p>Tidak ada anggota yang sesuai dengan pencarian Anda.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </PageTransition>
+  <Footer />
+</BaseLayout>
+
+<style>
+  /* Hero */
+  .anggota-hero {
+    height: 40vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    text-align: center;
+  }
+
+  .anggota-hero-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    z-index: 10;
+  }
+
+  .hero-title {
+    font-family: var(--font-display);
+    font-size: var(--font-size-h1);
+    color: white;
+    margin: 0;
+  }
+
+  .hero-counter {
+    font-family: var(--font-body);
+    font-size: 1rem;
+    color: var(--color-accent-gold);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* Search & Filter Bar */
+  .search-filter-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+    border-radius: 16px;
+    margin-bottom: 3rem;
+    position: relative;
+    z-index: 50; /* Memastikan dropdown muncul di atas member-grid */
+  }
+
+  @media (min-width: 768px) {
+    .search-filter-bar {
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.5rem;
+    }
+  }
+
+  .search-wrap {
+    position: relative;
+    flex: 1;
+    display: flex;
+    align-items: center;
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 1rem;
+    width: 20px;
+    height: 20px;
+    color: hsla(0, 0%, 100%, 0.4);
+    pointer-events: none;
+  }
+
+  .search-input {
+    width: 100%;
+    background: hsla(0, 0%, 100%, 0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 0.8rem 1rem 0.8rem 3rem;
+    color: white;
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    outline: none;
+    transition:
+      border-color var(--duration-fast) var(--ease-glass),
+      box-shadow var(--duration-fast);
+  }
+
+  .search-input::placeholder {
+    color: hsla(0, 0%, 100%, 0.4);
+  }
+
+  .search-input:focus {
+    border-color: var(--color-water-light);
+    box-shadow: 0 0 0 3px hsla(190, 65%, 55%, 0.15);
+  }
+
+  .filter-wrap.custom-dropdown {
+    position: relative;
+    min-width: 210px;
+  }
+
+  .dropdown-trigger {
+    width: 100%;
+    background: hsla(0, 0%, 100%, 0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 0.8rem 2.5rem 0.8rem 1.2rem;
+    color: white;
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    outline: none;
+    cursor: pointer;
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition:
+      border-color var(--duration-fast) var(--ease-glass),
+      box-shadow var(--duration-fast);
+  }
+
+  .dropdown-trigger:focus,
+  .dropdown-trigger.is-open {
+    border-color: var(--color-water-light);
+    box-shadow: 0 0 0 3px hsla(190, 65%, 55%, 0.15);
+  }
+
+  .dropdown-icon {
+    position: absolute;
+    right: 1.2rem;
+    width: 18px;
+    height: 18px;
+    color: hsla(0, 0%, 100%, 0.6);
+    pointer-events: none;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .dropdown-trigger.is-open .dropdown-icon {
+    transform: rotate(180deg);
+  }
+
+  /* List Dropdown Kaca (Custom Glass UI) */
+  .dropdown-list {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    background: hsla(210, 60%, 13%, 0.7); /* Deep water tint */
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 0.5rem;
+    margin: 0;
+    list-style: none;
+    z-index: 100;
+
+    /* Reveal Animation Physics */
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px) scale(0.98);
+    transform-origin: top center;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  }
+
+  .dropdown-list.is-open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+  }
+
+  .dropdown-option {
+    padding: 0.8rem 1rem;
+    color: hsla(0, 0%, 100%, 0.75);
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition:
+      background 0.2s ease,
+      color 0.2s ease;
+  }
+
+  .dropdown-option:hover {
+    background: hsla(190, 65%, 55%, 0.15);
+    color: white;
+  }
+
+  .dropdown-option.is-selected {
+    background: hsla(190, 65%, 55%, 0.25);
+    color: var(--color-water-light);
+    font-weight: 600;
+  }
+
+  /* Grid Anggota */
+  .members-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  @media (min-width: 768px) {
+    .members-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .members-grid {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+
+  .member-item {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 300px;
+    min-width: 0;
+  }
+
+  .member-item:hover {
+    will-change: transform, opacity;
+  }
+
+  .is-hidden {
+    display: none !important;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 4rem 1rem;
+    font-family: var(--font-body);
+    color: hsla(0, 0%, 100%, 0.6);
+    font-size: 1.1rem;
+  }
+</style>
+
+<script is:inline>
+  (function () {
+    var debounceTimer;
+
+    function initAnggotaDirectory() {
+      // Elements
+      var searchInput = document.getElementById("member-search");
+      var roleSelect = document.getElementById("member-role-filter");
+      var memberItems = document.querySelectorAll(".member-item");
+      var emptyState = document.getElementById("empty-state");
+
+      var trigger = document.getElementById("role-dropdown-trigger");
+      var list = document.getElementById("role-dropdown-list");
+      var label = document.getElementById("role-dropdown-label");
+      var options = document.querySelectorAll(".dropdown-option");
+
+      var pengurusRoles = ["Ketua", "Wakil Ketua", "Sekretaris", "Bendahara"];
+
+      function filterMembers() {
+        var query = searchInput ? searchInput.value.toLowerCase().trim() : "";
+        var roleFilter = roleSelect ? roleSelect.value : "Semua";
+        var visibleCount = 0;
+
+        memberItems.forEach(function (item) {
+          var name = item.getAttribute("data-name") || "";
+          var nickname = item.getAttribute("data-nickname") || "";
+          var role = item.getAttribute("data-role") || "";
+
+          var matchesQuery = name.includes(query) || nickname.includes(query);
+          var matchesRole = true;
+
+          if (roleFilter === "Pengurus") {
+            matchesRole = pengurusRoles.indexOf(role) !== -1;
+          } else if (roleFilter === "Anggota") {
+            matchesRole = role === "Anggota";
+          }
+
+          if (matchesQuery && matchesRole) {
+            item.classList.remove("is-hidden");
+            item.style.opacity = "1";
+            item.style.transform = "scale(1)";
+            visibleCount++;
+          } else {
+            item.classList.add("is-hidden");
+            item.style.opacity = "0";
+            item.style.transform = "scale(0.95)";
+          }
+        });
+
+        if (emptyState) {
+          emptyState.style.display = visibleCount === 0 ? "block" : "none";
+        }
+      }
+
+      function openDropdown() {
+        if (!trigger || !list) return;
+        trigger.classList.add("is-open");
+        list.classList.add("is-open");
+        trigger.setAttribute("aria-expanded", "true");
+        list.setAttribute("aria-hidden", "false");
+      }
+
+      function closeDropdown() {
+        if (!trigger || !list) return;
+        trigger.classList.remove("is-open");
+        list.classList.remove("is-open");
+        trigger.setAttribute("aria-expanded", "false");
+        list.setAttribute("aria-hidden", "true");
+      }
+
+      if (trigger && list) {
+        // Clear any old inline onclicks if any, but since DOM is fresh, addListener is safe.
+        trigger.addEventListener("click", function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          trigger.classList.contains("is-open")
+            ? closeDropdown()
+            : openDropdown();
+        });
+
+        options.forEach(function (opt) {
+          opt.addEventListener("click", function (e) {
+            e.stopPropagation();
+            var val = opt.getAttribute("data-value");
+            var text = opt.innerText;
+
+            if (roleSelect) roleSelect.value = val;
+            if (label) label.innerText = text;
+
+            options.forEach(function (o) {
+              o.classList.remove("is-selected");
+            });
+            opt.classList.add("is-selected");
+
+            closeDropdown();
+            if (roleSelect) roleSelect.dispatchEvent(new Event("change"));
+          });
+        });
+
+        // Use a persistent named function for document click so it deduplicates automatically
+        document.addEventListener("click", function handleOutsideClick(e) {
+          // If trigger and list are no longer in DOM (page swap), remove this listener
+          if (!document.body.contains(trigger)) {
+            document.removeEventListener("click", handleOutsideClick);
+            return;
+          }
+          if (!trigger.contains(e.target) && !list.contains(e.target)) {
+            closeDropdown();
+          }
+        });
+      }
+
+      if (searchInput) {
+        searchInput.addEventListener("input", function () {
+          clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(filterMembers, 300);
+        });
+      }
+
+      if (roleSelect) {
+        roleSelect.addEventListener("change", filterMembers);
+      }
+
+      // Mobile Tap Logic - self cleaning
+      document.addEventListener("click", function handleMobileTap(e) {
+        if (!document.body.contains(memberItems[0] || trigger)) {
+          document.removeEventListener("click", handleMobileTap);
+          return;
+        }
+        var isMobile = window.matchMedia("(hover: none)").matches;
+        if (!isMobile) return;
+
+        var card = e.target.closest("[data-member-card]");
+        var activeCards = document.querySelectorAll(
+          "[data-member-card].is-active",
+        );
+
+        if (card) {
+          var isActive = card.classList.contains("is-active");
+          activeCards.forEach(function (c) {
+            c.classList.remove("is-active");
+          });
+          if (!isActive) card.classList.add("is-active");
+        } else {
+          activeCards.forEach(function (c) {
+            c.classList.remove("is-active");
+          });
+        }
+      });
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initAnggotaDirectory);
+    } else {
+      initAnggotaDirectory();
+    }
+
+    // Using a named function prevents adding duplicate after-swap listeners on repeated visits
+    document.addEventListener("astro:after-swap", function afterSwapAnggota() {
+      // Only init if we are actually on the anggota page
+      if (document.getElementById("role-dropdown-trigger")) {
+        initAnggotaDirectory();
+      }
+    });
+  })();
+</script>

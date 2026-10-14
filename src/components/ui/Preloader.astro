@@ -1,0 +1,357 @@
+---
+
+---
+
+<script is:inline>
+  (function () {
+    if (sessionStorage.getItem("cloudsi_loaded")) {
+      document.documentElement.classList.add("is-loaded");
+      var p = document.getElementById("initial-preloader");
+      if (p) {
+        p.style.display = "none";
+        p.style.visibility = "hidden";
+        p.style.pointerEvents = "none";
+        if (p.parentNode) {
+          try {
+            p.parentNode.removeChild(p);
+          } catch (e) {}
+        }
+      }
+    }
+
+    document.addEventListener("astro:after-swap", function () {
+      if (sessionStorage.getItem("cloudsi_loaded")) {
+        document.documentElement.classList.add("is-loaded");
+        var p = document.getElementById("initial-preloader");
+        if (p) {
+          p.style.display = "none";
+          p.style.visibility = "hidden";
+          p.style.pointerEvents = "none";
+          if (p.parentNode) {
+            try {
+              p.parentNode.removeChild(p);
+            } catch (e) {}
+          }
+        }
+      }
+    });
+  })();
+</script>
+
+<style is:inline>
+  html.is-loaded #initial-preloader {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+</style>
+
+<div
+  id="initial-preloader"
+  class="fixed inset-0 z-[100000] flex flex-col items-center justify-center bg-[hsl(210,60%,6%)]"
+  style="transition: opacity 800ms ease-in-out;"
+>
+  <div class="text-center flex flex-col items-center gap-2">
+    <div class="relative mb-2">
+      <img
+        src="/logo-angkatan-25.webp?v=update"
+        alt="Cloudsi"
+        width="60"
+        height="60"
+        class="animate-pulse drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]"
+      />
+    </div>
+    <h2
+      class="font-serif text-3xl font-light tracking-[0.45em] text-white/90 m-0"
+    >
+      CLOUDSI
+    </h2>
+    <p
+      class="font-sans text-[0.65rem] tracking-[0.35em] uppercase text-[#66b3cc]/70 m-0"
+    >
+      Cloud · Sky · Information
+    </p>
+
+    <div
+      class="w-[200px] h-[2px] bg-[#1a2f42] rounded-full overflow-hidden mt-5"
+    >
+      <div
+        id="preloader-bar"
+        class="h-full w-0 rounded-full bg-gradient-to-r from-[#1785a6] to-[#60bfe0]"
+        style="transition: width 300ms ease-out;"
+      >
+      </div>
+    </div>
+    <p
+      id="preloader-text"
+      class="font-sans text-[0.7rem] tracking-[0.15em] text-[#3d8b9e] mt-2"
+    >
+      0%
+    </p>
+  </div>
+</div>
+
+<div
+  id="glass-wipe"
+  transition:persist="glass-wipe"
+  class="fixed inset-0 z-[99999] pointer-events-none flex items-center justify-center"
+  style="transform: translateY(100%); transition: transform 600ms cubic-bezier(0.76,0,0.24,1);"
+>
+  <div
+    class="absolute inset-0 bg-[hsl(210,60%,8%)] border-t border-b border-white/10 shadow-2xl"
+  >
+    <div
+      class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent"
+      style="transform: translateX(-100%); animation: cloudsi-shimmer 1.5s infinite;"
+    >
+    </div>
+  </div>
+  <div class="relative">
+    <h2
+      class="font-serif text-2xl tracking-[0.6em] text-white/90 uppercase drop-shadow-md"
+    >
+      Cloudsi
+    </h2>
+  </div>
+</div>
+
+<style is:inline>
+  @keyframes cloudsi-shimmer {
+    100% {
+      transform: translateX(100%);
+    }
+  }
+</style>
+
+<script is:inline>
+  (function () {
+    "use strict";
+
+    function withTimeout(promise, ms) {
+      var timeout = new Promise(function (resolve) {
+        setTimeout(resolve, ms);
+      });
+      return Promise.race([promise, timeout]);
+    }
+
+    function dismiss(initialEl) {
+      if (!initialEl) return;
+      initialEl.style.opacity = "0";
+      initialEl.style.pointerEvents = "none";
+      sessionStorage.setItem("cloudsi_loaded", "true");
+      document.documentElement.classList.add("is-loaded");
+      setTimeout(function () {
+        if (initialEl && initialEl.parentNode) {
+          try {
+            initialEl.parentNode.removeChild(initialEl);
+          } catch (e) {}
+        }
+      }, 850);
+    }
+
+    function forceShowAllContent() {
+      var selectors = [
+        "[data-hero-badge]",
+        "[data-hero-heading]",
+        "[data-hero-anim]",
+        ".hero-badge",
+        ".hero-heading",
+        ".hero-subheading",
+        ".hero-desc",
+        ".hero-cta",
+        ".member-preview-card",
+        ".tentang-title",
+        ".tentang-sub",
+        "[data-tentang-anim]",
+        "[data-event-card]",
+        ".stack-card",
+        ".photo-frame",
+        ".fade-in",
+        ".gallery-cta-link",
+        ".stats-section",
+        ".about-section",
+      ];
+      var allEls = document.querySelectorAll(selectors.join(","));
+      for (var i = 0; i < allEls.length; i++) {
+        allEls[i].style.opacity = "1";
+        allEls[i].style.transform = "none";
+        allEls[i].style.visibility = "visible";
+        if (allEls[i].classList.contains("fade-in")) {
+          allEls[i].classList.add("is-visible");
+        }
+      }
+    }
+
+    function initLogic() {
+      if (window.__preloaderInitialized) return;
+      window.__preloaderInitialized = true;
+
+      if (sessionStorage.getItem("cloudsi_loaded")) {
+        var el = document.getElementById("initial-preloader");
+        if (el) {
+          el.style.display = "none";
+          if (el.parentNode) {
+            try {
+              el.parentNode.removeChild(el);
+            } catch (e) {}
+          }
+        }
+        return;
+      }
+
+      if (document.documentElement.classList.contains("is-loaded")) {
+        var el2 = document.getElementById("initial-preloader");
+        if (el2) {
+          el2.style.display = "none";
+          if (el2.parentNode) {
+            try {
+              el2.parentNode.removeChild(el2);
+            } catch (e) {}
+          }
+        }
+        return;
+      }
+
+      var initialEl = document.getElementById("initial-preloader");
+      if (!initialEl) return;
+
+      var barEl = document.getElementById("preloader-bar");
+      var textEl = document.getElementById("preloader-text");
+      var progress = 0;
+      var dismissed = false;
+
+      if (!textEl || !barEl) {
+        dismiss(initialEl);
+        return;
+      }
+
+      function setProgress(val) {
+        progress = Math.min(Math.round(val), 100);
+        if (barEl) barEl.style.width = progress + "%";
+        if (textEl) textEl.textContent = progress + "%";
+      }
+
+      var criticalAssets = [];
+      var img = initialEl.querySelector('img[src*="logo-angkatan"]');
+      if (img) {
+        criticalAssets.push(
+          withTimeout(
+            new Promise(function (resolve) {
+              if (img.complete && img.naturalWidth > 0) return resolve();
+              img.onload = resolve;
+              img.onerror = resolve;
+            }),
+            2000,
+          ),
+        );
+      }
+
+      if (document.fonts && typeof document.fonts.load === "function") {
+        try {
+          var fontPromise = document.fonts.load('300 1em "Cormorant Garamond"');
+          if (fontPromise && typeof fontPromise.catch === "function") {
+            criticalAssets.push(
+              withTimeout(
+                fontPromise.catch(function () {}),
+                2500,
+              ),
+            );
+          }
+        } catch (err) {}
+      }
+
+      var fakeInterval = setInterval(function () {
+        if (progress < 85) {
+          var increment = (85 - progress) * 0.06 + 0.5;
+          setProgress(progress + increment);
+        } else {
+          clearInterval(fakeInterval);
+        }
+      }, 60);
+
+      var loaded = 0;
+      var total = criticalAssets.length || 1;
+
+      criticalAssets.forEach(function (p) {
+        p.then(function () {
+          loaded++;
+          var realProgress = 85 + (loaded / total) * 13;
+          if (realProgress > progress) setProgress(realProgress);
+        });
+      });
+
+      Promise.all(criticalAssets).then(function () {
+        if (dismissed) return;
+        dismissed = true;
+        clearInterval(fakeInterval);
+        setProgress(100);
+        setTimeout(function () {
+          dismiss(initialEl);
+        }, 350);
+      });
+
+      setTimeout(function () {
+        if (dismissed) return;
+        dismissed = true;
+        clearInterval(fakeInterval);
+        setProgress(100);
+        dismiss(initialEl);
+      }, 3500);
+    }
+
+    function initPageTransition() {
+      if (window.__cloudsiWipeInit) return;
+      window.__cloudsiWipeInit = true;
+
+      document.addEventListener("astro:before-preparation", function () {
+        var glassWipe = document.getElementById("glass-wipe");
+        if (glassWipe) {
+          glassWipe.style.transition =
+            "transform 600ms cubic-bezier(0.76,0,0.24,1)";
+          glassWipe.style.transform = "translateY(0)";
+        }
+      });
+
+      document.addEventListener("astro:after-swap", function () {
+        var glassWipe = document.getElementById("glass-wipe");
+        if (!glassWipe) return;
+
+        setTimeout(function () {
+          glassWipe.style.transform = "translateY(-100%)";
+
+          setTimeout(function () {
+            glassWipe.style.transition = "none";
+            glassWipe.style.transform = "translateY(100%)";
+            setTimeout(function () {
+              glassWipe.style.transition =
+                "transform 600ms cubic-bezier(0.76,0,0.24,1)";
+            }, 50);
+          }, 620);
+        }, 50);
+      });
+    }
+
+    initLogic();
+    initPageTransition();
+
+    setTimeout(function () {
+      var el = document.getElementById("initial-preloader");
+      if (el && el.offsetParent !== null) {
+        console.warn("[Cloudsi] Safety net: force dismissing after 5s");
+        el.style.opacity = "0";
+        el.style.pointerEvents = "none";
+        sessionStorage.setItem("cloudsi_loaded", "true");
+        document.documentElement.classList.add("is-loaded");
+        setTimeout(function () {
+          if (el && el.parentNode) {
+            try {
+              el.parentNode.removeChild(el);
+            } catch (e) {}
+          }
+        }, 850);
+      }
+
+      forceShowAllContent();
+    }, 5000);
+  })();
+</script>

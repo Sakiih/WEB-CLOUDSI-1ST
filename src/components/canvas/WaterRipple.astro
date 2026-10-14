@@ -1,0 +1,634 @@
+---
+/**
+ * WaterRipple.astro
+ * OGL-based Physical Water Surface (Spring Simulation)
+ * Ultra-smooth, high-res raindrop ripples with pure video refraction (SIAKAD style).
+ *
+ * MEMORY LEAK FIX: Uses Global Singleton Controller pattern.
+ * - window.CloudSI_Water = { initialized, cleanup }
+ * - Explicit VRAM disposal (deleteShader, deleteProgram, deleteBuffer, loseContext)
+ * - No { once: true } on astro:before-swap
+ * - All rAF/setInterval tracked and cancelled
+ *
+ * PERFORMANCE TIERS:
+ * - ULTRA: 512x512 simulation, HALF_FLOAT, dpr 2.0
+ * - NORMAL: 256x256 simulation, FLOAT, dpr 1.5
+ * - LOW: Disable OGL, render CSS gradient fallback
+ * - BATTERY_SAVER: Pure static (no animation)
+ */
+---
+
+<canvas id="water-canvas" class="water-canvas" aria-hidden="true"></canvas>
+
+<!-- CSS gradient fallback for LOW/BATTERY_SAVER tier -->
+<div
+  id="water-fallback"
+  class="water-fallback"
+  aria-hidden="true"
+  style="display: none;"
+>
+</div>
+
+<style>
+  .water-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .water-fallback {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+    background: linear-gradient(
+      180deg,
+      hsla(210, 60%, 6%, 0) 0%,
+      hsla(200, 55%, 12%, 0.15) 30%,
+      hsla(195, 60%, 20%, 0.1) 60%,
+      hsla(210, 60%, 6%, 0) 100%
+    );
+  }
+</style>
+
+<script is:inline>
+  (function () {
+    "use strict";
+
+    // =============================================
+    // GLOBAL SINGLETON CONTROLLER
+    // =============================================
+    window.CloudSI_Water = window.CloudSI_Water || {
+      initialized: false,
+      cleanup: null,
+    };
+
+    function initWaterRipple() {
+      // If already initialized, cleanup first to prevent duplicates
+      if (
+        window.CloudSI_Water.initialized &&
+        typeof window.CloudSI_Water.cleanup === "function"
+      ) {
+        window.CloudSI_Water.cleanup();
+      }
+
+      var prefersReduced = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+      if (prefersReduced) return;
+
+      var canvas = document.getElementById("water-canvas");
+      if (!canvas) return;
+
+      var isMobileCheck =
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+          navigator.userAgent,
+        ) || window.innerWidth <= 768;
+      if (isMobileCheck) {
+        canvas.style.display = "none";
+        var fallback = document.getElementById("water-fallback");
+        if (fallback) fallback.style.display = "block";
+        return;
+      }
+
+      // =============================================
+      // PERFORMANCE TIER CHECK
+      // =============================================
+      var tier = sessionStorage.getItem("cloudsi_perf_tier") || "NORMAL";
+
+      // BATTERY_SAVER: No animation at all
+      if (tier === "BATTERY_SAVER") {
+        canvas.style.display = "none";
+        return;
+      }
+
+      // LOW: CSS gradient fallback only
+      if (tier === "LOW") {
+        canvas.style.display = "none";
+        var fallback = document.getElementById("water-fallback");
+        if (fallback) fallback.style.display = "block";
+        return;
+      }
+
+      // Battery check (one-time on init)
+      try {
+        if ("getBattery" in navigator) {
+          navigator.getBattery().then(function (battery) {
+            if (battery.level < 0.2 && !battery.charging) {
+              console.warn("[Cloudsi] Baterai rendah, mematikan efek air.");
+              canvas.style.display = "none";
+              var fallback = document.getElementById("water-fallback");
+              if (fallback) fallback.style.display = "block";
+              // Cleanup if already started
+              if (typeof window.CloudSI_Water.cleanup === "function") {
+                window.CloudSI_Water.cleanup();
+              }
+              return;
+            }
+          });
+        }
+      } catch (e) {}
+
+      import("ogl")
+        .then(function (OGL) {
+          // Guard: if cleanup was called between import start and resolve
+          if (!document.getElementById("water-canvas")) return;
+
+          var Renderer = OGL.Renderer;
+          var Program = OGL.Program;
+          var Mesh = OGL.Mesh;
+          var RenderTarget = OGL.RenderTarget;
+          var Triangle = OGL.Triangle;
+          var Texture = OGL.Texture;
+
+          // === DETEKSI PERANGKAT BERDASARKAN TIER ===
+          var isMobile = window.innerWidth < 768 || "ontouchstart" in window;
+
+          // Tier-based settings
+          var dprLimit, simulationRes;
+          if (tier === "ULTRA") {
+            dprLimit = 2.0;
+            simulationRes = 512;
+          } else {
+            // NORMAL
+            dprLimit = 1.5;
+            simulationRes = 256;
+          }
+
+          var renderer = new Renderer({
+            canvas: canvas,
+            alpha: true,
+            dpr: Math.min(window.devicePixelRatio, dprLimit),
+          });
+          var gl = renderer.gl;
+
+          function createRT() {
+            // ULTRA uses HALF_FLOAT, NORMAL uses FLOAT
+            var rtType =
+              tier === "ULTRA" ? gl.HALF_FLOAT || gl.FLOAT : gl.FLOAT;
+            var rtFormat = tier === "ULTRA" ? gl.RGBA16F || gl.RGBA : gl.RGBA;
+
+            return new RenderTarget(gl, {
+              width: simulationRes,
+              height: simulationRes,
+              type: rtType,
+              internalFormat: rtFormat,
+              format: gl.RGBA,
+              depth: false,
+              minFilter: gl.LINEAR,
+              magFilter: gl.LINEAR,
+            });
+          }
+
+          var rtCurrent = createRT();
+          var rtPrevious = createRT();
+          var rtOutput = createRT();
+
+          var videoEl =
+            document.getElementById("bg-hero-video") ||
+            document.getElementById("cloud-canvas");
+          var videoTex = null;
+          if (videoEl) {
+            videoTex = new Texture(gl, {
+              image: new Uint8Array([0, 0, 0, 255]),
+              width: 1,
+              height: 1,
+              generateMipmaps: false,
+              minFilter: gl.LINEAR,
+              magFilter: gl.LINEAR,
+              flipY: true,
+            });
+          }
+
+          var simVertex = /* glsl */ `
+          attribute vec2 position;
+          attribute vec2 uv;
+          varying vec2 vUv;
+          void main() {
+            vUv = uv;
+            gl_Position = vec4(position, 0.0, 1.0);
+          }
+        `;
+
+          var simFragment = /* glsl */ `
+          precision highp float;
+          uniform sampler2D uCurrent;
+          uniform sampler2D uPrevious;
+          uniform vec2 uResolution;
+          uniform vec2 uDropPos;
+          uniform float uDropRadius;
+          uniform float uDropStrength;
+          uniform float uDamping;
+          uniform bool uAddDrop;
+          varying vec2 vUv;
+
+          void main() {
+            vec2 texel = 1.0 / uResolution;
+            
+            float current = texture2D(uCurrent, vUv).r;
+            float previous = texture2D(uPrevious, vUv).r;
+            
+            float top = texture2D(uCurrent, vUv - vec2(0.0, texel.y)).r;
+            float bottom = texture2D(uCurrent, vUv + vec2(0.0, texel.y)).r;
+            float left = texture2D(uCurrent, vUv - vec2(texel.x, 0.0)).r;
+            float right = texture2D(uCurrent, vUv + vec2(texel.x, 0.0)).r;
+            
+            float next = (top + bottom + left + right) * 0.5 - previous;
+            next *= uDamping;
+
+            if (uAddDrop) {
+              float dist = distance(vUv, uDropPos);
+              if (dist < uDropRadius) {
+                float drop = exp(-dist * dist / (uDropRadius * uDropRadius * 0.1)) * uDropStrength;
+                next -= drop;
+              }
+            }
+            
+            next = clamp(next, -1.0, 1.0);
+            gl_FragColor = vec4(next, 0.0, 0.0, 1.0);
+          }
+        `;
+
+          var triangle = new Triangle(gl);
+
+          var simProgram = new Program(gl, {
+            vertex: simVertex,
+            fragment: simFragment,
+            uniforms: {
+              uCurrent: { value: null },
+              uPrevious: { value: null },
+              uResolution: { value: [simulationRes, simulationRes] },
+              uDropPos: { value: [-1, -1] },
+              uDropRadius: { value: 0.008 },
+              uDropStrength: { value: 0.4 },
+              uDamping: { value: 0.95 },
+              uAddDrop: { value: false },
+            },
+          });
+
+          var simMesh = new Mesh(gl, {
+            geometry: triangle,
+            program: simProgram,
+          });
+
+          var renderFragment = /* glsl */ `
+          precision highp float;
+          uniform sampler2D tWaterMap;
+          uniform sampler2D tVideoMap;
+          uniform bool uHasVideo;
+          uniform vec2 uResolution;
+          uniform vec2 uVideoScale;
+          varying vec2 vUv;
+          
+          void main() {
+            float height = texture2D(tWaterMap, vUv).r;
+            vec2 texel = 1.0 / uResolution;
+            
+            float dx = texture2D(tWaterMap, vec2(vUv.x + texel.x, vUv.y)).r - texture2D(tWaterMap, vec2(vUv.x - texel.x, vUv.y)).r;
+            float dy = texture2D(tWaterMap, vec2(vUv.x, vUv.y + texel.y)).r - texture2D(tWaterMap, vec2(vUv.x, vUv.y - texel.y)).r;
+            vec3 normal = normalize(vec3(-dx * 40.0, -dy * 40.0, 1.0));
+
+            vec2 videoUv = (vUv - 0.5) * uVideoScale + 0.5;
+            vec2 distortion = normal.xy * 0.1; 
+            vec2 finalVideoUv = clamp(videoUv + distortion, 0.0, 1.0);
+            
+            vec3 bgColor;
+            if (uHasVideo) {
+               bgColor = texture2D(tVideoMap, finalVideoUv).rgb;
+            } else {
+               bgColor = vec3(0.024, 0.043, 0.067); 
+            }
+
+            vec3 overlayColor = vec3(0.011, 0.057, 0.103);
+            bgColor = mix(bgColor, overlayColor, 0.55);
+
+            vec3 lightDir = normalize(vec3(0.5, 0.8, 1.0));
+            float spec = pow(max(dot(normal, lightDir), 0.0), 40.0);
+            
+            vec3 finalColor = bgColor + (vec3(1.0) * spec * 0.25); 
+
+            gl_FragColor = vec4(finalColor, 1.0);
+          }
+        `;
+
+          var renderProgram = new Program(gl, {
+            vertex: simVertex,
+            fragment: renderFragment,
+            uniforms: {
+              tWaterMap: { value: null },
+              tVideoMap: { value: videoTex },
+              uHasVideo: { value: videoEl != null },
+              uResolution: { value: [window.innerWidth, window.innerHeight] },
+              uVideoScale: { value: [1, 1] },
+            },
+            transparent: false,
+          });
+          var renderMesh = new Mesh(gl, {
+            geometry: triangle,
+            program: renderProgram,
+          });
+
+          var dropQueue = [];
+          var rAFId = null;
+
+          function addDrop(x, y) {
+            dropQueue.push({
+              x: x / window.innerWidth,
+              y: 1.0 - y / window.innerHeight,
+            });
+          }
+
+          function onResize() {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderProgram.uniforms.uResolution.value = [
+              window.innerWidth,
+              window.innerHeight,
+            ];
+          }
+
+          window.addEventListener("resize", onResize);
+          renderer.setSize(window.innerWidth, window.innerHeight);
+
+          var lastMove = 0;
+          // Throttle: ULTRA 20ms, NORMAL 40ms
+          var moveThrottle = tier === "ULTRA" ? 20 : 40;
+
+          // ===== INTERACTION-GATED rAF =====
+          var isAnimating = false;
+          var isVisible = true;
+          var autoDropTimer = null;
+          var isDestroyed = false;
+
+          function startLoop() {
+            if (isAnimating || !isVisible || isDestroyed) return;
+            isAnimating = true;
+            rAFId = requestAnimationFrame(animate);
+
+            // Auto drops to keep animation alive continuously
+            if (!autoDropTimer) {
+              autoDropTimer = setInterval(function () {
+                if (isDestroyed) return;
+                var rx = (0.2 + Math.random() * 0.6) * window.innerWidth;
+                var ry = (0.2 + Math.random() * 0.6) * window.innerHeight;
+                addDrop(rx, ry);
+              }, 3500);
+            }
+          }
+
+          function stopLoop() {
+            if (!isAnimating) return;
+            isAnimating = false;
+            if (rAFId !== null) {
+              cancelAnimationFrame(rAFId);
+              rAFId = null;
+            }
+            if (autoDropTimer) {
+              clearInterval(autoDropTimer);
+              autoDropTimer = null;
+            }
+          }
+
+          var handleDragMove = function (e) {
+            if (isDestroyed) return;
+            if (performance.now() - lastMove > moveThrottle) {
+              var cx = e.touches ? e.touches[0].clientX : e.clientX;
+              var cy = e.touches ? e.touches[0].clientY : e.clientY;
+              addDrop(cx, cy);
+              lastMove = performance.now();
+              startLoop();
+            }
+          };
+
+          window.addEventListener("mousemove", handleDragMove);
+          window.addEventListener("touchmove", handleDragMove, {
+            passive: true,
+          });
+
+          // IntersectionObserver: pause when canvas out of view, resume when back
+          var visObserver = null;
+          var waterCanvas = document.getElementById("water-canvas");
+          if (waterCanvas) {
+            visObserver = new IntersectionObserver(
+              function (entries) {
+                isVisible = entries[0].isIntersecting;
+                if (!isVisible) {
+                  stopLoop();
+                } else {
+                  startLoop(); // Resume instantly if visible
+                }
+              },
+              { threshold: 0 },
+            );
+            visObserver.observe(waterCanvas);
+          }
+
+          function animate(t) {
+            if (!isAnimating || isDestroyed) return;
+            rAFId = requestAnimationFrame(animate);
+
+            // Cek kesiapan sumber background
+            if (videoTex && videoEl) {
+              var isVideo = videoEl.tagName.toLowerCase() === "video";
+              var isReady = isVideo ? videoEl.readyState >= 2 : true;
+
+              if (isReady) {
+                if (videoTex.image instanceof Uint8Array || !isVideo) {
+                  videoTex.image = videoEl;
+                }
+                videoTex.needsUpdate = true;
+
+                var cW = window.innerWidth;
+                var cH = window.innerHeight;
+                var vW = isVideo
+                  ? videoEl.videoWidth || 1920
+                  : videoEl.width || window.innerWidth;
+                var vH = isVideo
+                  ? videoEl.videoHeight || 1080
+                  : videoEl.height || window.innerHeight;
+                var scale = Math.max(cW / vW, cH / vH);
+                var rW = vW * scale;
+                var rH = vH * scale;
+                renderProgram.uniforms.uVideoScale.value = [cW / rW, cH / rH];
+              }
+            }
+
+            simProgram.uniforms.uCurrent.value = rtCurrent.texture;
+            simProgram.uniforms.uPrevious.value = rtPrevious.texture;
+
+            if (dropQueue.length > 0) {
+              var drop = dropQueue.shift();
+              simProgram.uniforms.uDropPos.value = [drop.x, drop.y];
+              simProgram.uniforms.uAddDrop.value = true;
+            } else {
+              simProgram.uniforms.uAddDrop.value = false;
+            }
+
+            renderer.render({ scene: simMesh, target: rtOutput, clear: false });
+
+            renderProgram.uniforms.tWaterMap.value = rtOutput.texture;
+            renderer.render({ scene: renderMesh });
+
+            var tmp = rtPrevious;
+            rtPrevious = rtCurrent;
+            rtCurrent = rtOutput;
+            rtOutput = tmp;
+          }
+
+          // =============================================
+          // FULL CLEANUP — VRAM DISPOSAL + LISTENER REMOVAL
+          // =============================================
+          function fullCleanup() {
+            if (isDestroyed) return; // Idempotent guard
+            isDestroyed = true;
+
+            console.log(
+              "[Cloudsi] WaterRipple: Full cleanup — disposing VRAM.",
+            );
+
+            // 1. Stop all animation loops
+            stopLoop();
+            dropQueue.length = 0;
+
+            // 2. Remove event listeners
+            window.removeEventListener("mousemove", handleDragMove);
+            window.removeEventListener("touchmove", handleDragMove);
+            window.removeEventListener("resize", onResize);
+
+            // 3. Disconnect observer
+            if (visObserver) {
+              visObserver.disconnect();
+              visObserver = null;
+            }
+
+            // 4. Explicit VRAM disposal — delete shaders, programs, buffers
+            try {
+              // Delete OGL program shaders (simProgram)
+              if (simProgram && simProgram.gl) {
+                var spGl = simProgram.gl;
+                var spProgram = simProgram.program;
+                if (spProgram) {
+                  var shaders = spGl.getAttachedShaders(spProgram);
+                  if (shaders) {
+                    for (var i = 0; i < shaders.length; i++) {
+                      spGl.detachShader(spProgram, shaders[i]);
+                      spGl.deleteShader(shaders[i]);
+                    }
+                  }
+                  spGl.deleteProgram(spProgram);
+                }
+              }
+
+              // Delete OGL program shaders (renderProgram)
+              if (renderProgram && renderProgram.gl) {
+                var rpGl = renderProgram.gl;
+                var rpProgram = renderProgram.program;
+                if (rpProgram) {
+                  var rpShaders = rpGl.getAttachedShaders(rpProgram);
+                  if (rpShaders) {
+                    for (var j = 0; j < rpShaders.length; j++) {
+                      rpGl.detachShader(rpProgram, rpShaders[j]);
+                      rpGl.deleteShader(rpShaders[j]);
+                    }
+                  }
+                  rpGl.deleteProgram(rpProgram);
+                }
+              }
+
+              // Delete triangle geometry buffers
+              if (triangle && triangle.attributes) {
+                var attrs = triangle.attributes;
+                for (var key in attrs) {
+                  if (attrs[key] && attrs[key].buffer) {
+                    gl.deleteBuffer(attrs[key].buffer);
+                  }
+                }
+              }
+
+              // Delete render target textures/framebuffers
+              // OGL RenderTargets hold .texture and .buffer (framebuffer)
+              [rtCurrent, rtPrevious, rtOutput].forEach(function (rt) {
+                if (rt) {
+                  if (rt.texture && rt.texture.texture) {
+                    gl.deleteTexture(rt.texture.texture);
+                  }
+                  if (rt.buffer) {
+                    gl.deleteFramebuffer(rt.buffer);
+                  }
+                  if (rt.depthBuffer) {
+                    gl.deleteRenderbuffer(rt.depthBuffer);
+                  }
+                }
+              });
+
+              // Delete video texture
+              if (videoTex && videoTex.texture) {
+                gl.deleteTexture(videoTex.texture);
+              }
+            } catch (e) {
+              console.warn("[Cloudsi] WaterRipple cleanup (GPU resources):", e);
+            }
+
+            // 5. Lose WebGL context entirely
+            try {
+              var ext = gl.getExtension("WEBGL_lose_context");
+              if (ext) ext.loseContext();
+            } catch (e) {}
+
+            // 6. Reset singleton state
+            window.CloudSI_Water.initialized = false;
+            window.CloudSI_Water.cleanup = null;
+          }
+
+          // Register cleanup on the global singleton
+          window.CloudSI_Water.initialized = true;
+          window.CloudSI_Water.cleanup = fullCleanup;
+
+          // Initial drop: starts the endless loop
+          setTimeout(function () {
+            if (!isDestroyed) {
+              addDrop(window.innerWidth / 2, window.innerHeight / 2);
+              startLoop();
+            }
+          }, 500);
+
+          // =============================================
+          // ASTRO VIEW TRANSITION HANDLER
+          // NO { once: true } — persistent listener
+          // =============================================
+          document.addEventListener("astro:before-swap", function () {
+            if (
+              window.CloudSI_Water &&
+              typeof window.CloudSI_Water.cleanup === "function"
+            ) {
+              window.CloudSI_Water.cleanup();
+            }
+          });
+        })
+        .catch(function (err) {
+          console.warn("[Cloudsi] Gagal muat modul OGL:", err);
+          // Show fallback
+          var canvas = document.getElementById("water-canvas");
+          if (canvas) canvas.style.display = "none";
+          var fallback = document.getElementById("water-fallback");
+          if (fallback) fallback.style.display = "block";
+        });
+    }
+
+    function scheduleWater() {
+      if ("requestIdleCallback" in window) {
+        requestIdleCallback(initWaterRipple, { timeout: 1000 });
+      } else {
+        setTimeout(initWaterRipple, 300);
+      }
+    }
+    document.addEventListener("DOMContentLoaded", scheduleWater);
+    document.addEventListener("astro:after-swap", scheduleWater);
+  })();
+</script>

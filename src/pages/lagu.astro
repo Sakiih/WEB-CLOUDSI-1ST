@@ -1,0 +1,804 @@
+---
+/**
+ * lagu.astro
+ * Halaman Lagu Angkatan dengan MP3 Player terintegrasi.
+ * Desain Glassmorphism, performa dioptimalkan (lazy-init audio).
+ * Dependencies: BaseLayout, Header, Footer, PageTransition
+ */
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Footer from "../components/layout/Footer.astro";
+import PageTransition from "../components/layout/PageTransition.astro";
+import Header from "../components/layout/Header.astro";
+---
+
+<BaseLayout
+  title="Lagu | Cloudsi | Sistem Informasi Untan"
+  description="Dalam satu ruang kami adalah keluarga besar Sistem Informasi Universitas Tanjungpura, penggerak teknologi masa depan."
+>
+  <PageTransition>
+    <main id="main-content">
+      <Header />
+
+      <!-- Hero mini -->
+      <section class="lagu-hero">
+        <div class="container-main lagu-hero-inner hero-fade-up">
+          <h1 class="lagu-title">Lagu Angkatan</h1>
+          <p class="lagu-sub">Nantikan lagu kebanggaan angkatan kami.</p>
+        </div>
+      </section>
+
+      <!-- Lyrics Section -->
+      <section class="lagu-content-section section-pad-sm">
+        <div class="container-main">
+          <div class="lyrics-panel glass">
+            <div class="lyrics-header">
+              <h2 class="song-maintitle">Lirik Mars Cloudsi</h2>
+              <p class="song-key">Do = C</p>
+            </div>
+
+            <div class="lyrics-body">
+              <div class="lyric-stanza">
+                <h3 class="stanza-label">Verse 1</h3>
+                <p class="lyric-line">
+                  <span class="c-block" data-c="C"
+                    >Terbang tinggi ke langit yang
+                  </span><span class="c-block" data-c="F">biru dan </span><span
+                    class="c-block"
+                    data-c="C">cerah.</span>
+                </p>
+                <p class="lyric-line">
+                  <span class="c-block" data-c="F">Bersama cloudsi </span><span
+                    class="c-block"
+                    data-c="G"
+                    >membangun generasi yang
+                  </span><span class="c-block" data-c="C">cerah</span>
+                </p>
+              </div>
+
+              <div class="lyric-stanza">
+                <h3 class="stanza-label">Pre-Chorus</h3>
+                <p class="lyric-line">
+                  <span class="c-block" data-c="F">Hei angkat </span><span
+                    class="c-block"
+                    data-c="G">tangan</span>
+                </p>
+                <p class="lyric-line">
+                  <span class="c-block" data-c="Em"
+                    >Tunjukan semangat yang
+                  </span><span class="c-block" data-c="Am">hebat</span>
+                </p>
+                <p class="lyric-line">
+                  <span class="c-block" data-c="Dm">Gembiralah kita </span><span
+                    class="c-block"
+                    data-c="G"
+                    >rayakan, kebersamaan
+                  </span><span class="c-block" data-c="C">ini</span>
+                </p>
+              </div>
+
+              <div class="lyric-stanza highlight-stanza">
+                <h3 class="stanza-label">Chorus</h3>
+                <p class="lyric-line">
+                  <span class="c-block" data-c="F">Jaya dalam </span><span
+                    class="c-block"
+                    data-c="G"
+                    >ilmu, dalam sportifitas
+                  </span><span class="c-block" data-c="C">kita ber</span><span
+                    class="c-block"
+                    data-c="Am">satu.</span>
+                </p>
+                <p class="lyric-line">
+                  <span class="c-block" data-c="Dm">Bersama-sama </span><span
+                    class="c-block"
+                    data-c="G">meraih pres</span
+                  ><span class="c-block" data-c="C">tasi</span>
+                </p>
+                <p class="lyric-line">
+                  <span class="c-block" data-c="F">Bersama </span><span
+                    class="c-block"
+                    data-c="G">anak sistem infor</span
+                  ><span class="c-block" data-c="C">masi</span>
+                </p>
+              </div>
+
+              <div class="lyric-stanza">
+                <h3 class="stanza-label">Verse 2</h3>
+                <p class="lyric-line">
+                  <span class="c-block" data-c="C"
+                    >Kita bangun fondasi
+                  </span><span class="c-block" data-c="F"
+                    >bersama yang
+                  </span><span class="c-block" data-c="C">kuat.</span>
+                </p>
+                <p class="lyric-line">
+                  <span class="c-block" data-c="F">Digitalisasi bi</span><span
+                    class="c-block"
+                    data-c="G"
+                    >kin kita
+                  </span><span class="c-block" data-c="C">hebat.</span>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MP3 Player Section (Moved Below Lyrics) -->
+      <section class="player-section section-pad-sm">
+        <div class="container-main">
+          <div
+            class="mp3-player glass"
+            id="mars-player"
+            role="region"
+            aria-label="Audio Player"
+          >
+            <!-- CD/Vinyl visualizer -->
+            <div class="player-visual" aria-hidden="true">
+              <div class="vinyl-record" id="vinyl-record">
+                <div class="vinyl-label"></div>
+                <div class="vinyl-center"></div>
+              </div>
+              <div class="waveform-bars" id="waveform-visual">
+                <div class="bar"></div><div class="bar"></div><div class="bar">
+                </div>
+                <div class="bar"></div><div class="bar"></div><div class="bar">
+                </div>
+                <div class="bar"></div><div class="bar"></div><div class="bar">
+                </div>
+              </div>
+            </div>
+
+            <!-- Track Info -->
+            <div class="player-content">
+              <div class="track-info">
+                <h2 class="track-title">Mars Cloudsi</h2>
+                <p class="track-artist">Angkatan 2025 &middot; SI UNTAN</p>
+              </div>
+
+              <!-- Controls -->
+              <div class="player-controls-container">
+                <div class="progress-container" id="progress-container">
+                  <span class="time-display" id="current-time">0:00</span>
+                  <div class="progress-bar-bg" id="progress-bar-bg">
+                    <div class="progress-bar-fill" id="progress-bar-fill"></div>
+                  </div>
+                  <span class="time-display" id="total-duration">--:--</span>
+                </div>
+
+                <div class="controls-row">
+                  <button
+                    class="control-btn secondary-btn"
+                    id="rewind-btn"
+                    aria-label="Rewind 10s"
+                  >
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      ><path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"></path></svg
+                    >
+                  </button>
+
+                  <button
+                    class="control-btn main-play-btn"
+                    id="play-pause-btn"
+                    aria-label="Play Track"
+                  >
+                    <svg
+                      id="play-icon"
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"><path d="M8 5v14l11-7z"></path></svg
+                    >
+                    <svg
+                      id="pause-icon"
+                      class="hidden"
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                      ><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path></svg
+                    >
+                  </button>
+
+                  <button
+                    class="control-btn secondary-btn"
+                    id="forward-btn"
+                    aria-label="Forward 10s"
+                  >
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      ><path d="M13 17l5-5-5-5M6 17l5-5-5-5"></path></svg
+                    >
+                  </button>
+                </div>
+
+                <div class="volume-container">
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    ><path
+                      d="M11 5L6 9H2v6h4l5 4V5zM15.54 8.46a5 5 0 0 1 0 7.07"
+                    ></path></svg
+                  >
+                  <input
+                    type="range"
+                    id="volume-slider"
+                    class="volume-slider"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    value="1"
+                    aria-label="Volume Slider"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- Hidden audio -->
+            <audio id="main-audio" preload="none" src="/mars-cloudsi.mp3"
+            ></audio>
+          </div>
+        </div>
+      </section>
+    </main>
+  </PageTransition>
+  <Footer />
+</BaseLayout>
+
+<style>
+  /* Base layout padding adjustments */
+  .section-pad-sm {
+    padding: 2rem 0;
+  }
+
+  /* Hero */
+  .lagu-hero {
+    position: relative;
+    padding-top: 140px;
+    padding-bottom: 40px;
+    text-align: center;
+  }
+  .lagu-title {
+    font-family: var(--font-display);
+    font-size: var(--font-size-h1);
+    background: linear-gradient(135deg, #fff 0%, var(--color-water-light) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 1rem;
+  }
+  .lagu-sub {
+    color: hsla(0, 0%, 100%, 0.6);
+    font-style: italic;
+  }
+
+  /* Player Styles */
+  .mp3-player {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 3rem;
+    display: flex;
+    align-items: center;
+    gap: 3rem;
+    border-radius: 40px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.6);
+  }
+
+  .player-visual {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    flex-shrink: 0;
+  }
+
+  .vinyl-record {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: radial-gradient(circle, #222 0%, #000 70%);
+    border: 4px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    transition: transform 0.5s ease-out;
+  }
+
+  .vinyl-record.playing {
+    animation: rotateVinyl 4s linear infinite;
+  }
+
+  @keyframes rotateVinyl {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .vinyl-label {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--color-water-surface);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .vinyl-center {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    background: #fff;
+    border-radius: 50%;
+  }
+
+  .waveform-bars {
+    position: absolute;
+    bottom: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 3px;
+    align-items: flex-end;
+    height: 30px;
+    pointer-events: none;
+  }
+
+  .bar {
+    width: 4px;
+    height: 4px;
+    background: var(--color-water-light);
+    border-radius: 2px;
+    transition: height 0.2s ease;
+  }
+
+  .mp3-player.is-playing .bar {
+    animation: barDance 0.8s ease-in-out infinite alternate;
+  }
+
+  .bar:nth-child(2) {
+    animation-delay: 0.1s;
+  }
+  .bar:nth-child(3) {
+    animation-delay: 0.2s;
+  }
+  .bar:nth-child(4) {
+    animation-delay: 0.3s;
+  }
+  .bar:nth-child(5) {
+    animation-delay: 0.4s;
+  }
+  /* ... etc */
+
+  @keyframes barDance {
+    from {
+      height: 4px;
+    }
+    to {
+      height: 25px;
+    }
+  }
+
+  .player-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .track-title {
+    font-size: 2rem;
+    color: #fff;
+    margin: 0;
+    font-family: var(--font-display);
+  }
+  .track-artist {
+    font-size: 1.1rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin: 0;
+  }
+
+  .player-controls-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .progress-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .time-display {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.5);
+    width: 35px;
+  }
+  .progress-bar-bg {
+    flex-grow: 1;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    position: relative;
+    cursor: pointer;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--color-water-light);
+    border-radius: 3px;
+  }
+
+  .controls-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+  }
+  .control-btn {
+    background: none;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    transition: transform 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .control-btn:hover {
+    transform: scale(1.1);
+    color: var(--color-water-light);
+  }
+  .main-play-btn {
+    width: 70px;
+    height: 70px;
+    background: var(--color-water-surface);
+    border-radius: 50%;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+  }
+  .main-play-btn:hover {
+    background: var(--color-water-light);
+    color: #000;
+  }
+
+  .volume-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    opacity: 0.6;
+    transition: opacity 0.3s;
+  }
+  .volume-container:hover {
+    opacity: 1;
+  }
+  .volume-slider {
+    -webkit-appearance: none;
+    width: 80px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+    outline: none;
+  }
+  .volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    background: #fff;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+
+  /* Lyrics Section Styles - Merged from previous content */
+  .lyrics-panel {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 4rem 2rem;
+    border-radius: 24px;
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .lyrics-header {
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+  .song-maintitle {
+    font-size: 2.5rem;
+    font-family: var(--font-display);
+    background: linear-gradient(135deg, #fff 0%, #a5d8ff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .lyric-stanza {
+    margin-bottom: 2rem;
+  }
+  .stanza-label {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.3);
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+  .lyric-line {
+    font-size: 1.1rem;
+    line-height: 2.2;
+    margin: 0;
+    position: relative;
+    padding-top: 1.5rem;
+  }
+
+  .c-block {
+    position: relative;
+  }
+  .c-block::before {
+    content: attr(data-c);
+    position: absolute;
+    top: -1.4rem;
+    left: 0;
+    font-weight: 700;
+    color: var(--color-accent-gold);
+    font-size: 0.85rem;
+  }
+
+  .highlight-stanza {
+    border-left: 2px solid var(--color-water-light);
+    padding-left: 1.5rem;
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .hidden {
+    display: none;
+  }
+
+  @media (max-width: 768px) {
+    .mp3-player {
+      flex-direction: column;
+      text-align: center;
+      padding: 2.5rem 1rem;
+      gap: 2rem;
+      border-radius: 24px;
+    }
+
+    .player-visual {
+      width: 200px;
+      height: 200px;
+    }
+
+    .track-title {
+      font-size: 1.8rem;
+    }
+
+    .player-content,
+    .player-controls-container,
+    .progress-container {
+      width: 100%;
+    }
+
+    .progress-bar-bg {
+      height: 12px;
+    }
+
+    .main-play-btn {
+      width: 80px;
+      height: 80px;
+    }
+
+    .controls-row {
+      gap: 2.5rem;
+    }
+
+    .volume-slider {
+      width: 100%;
+      height: 8px;
+    }
+
+    .volume-container {
+      margin-top: 1rem;
+      padding: 0 0.5rem;
+    }
+  }
+</style>
+
+<script>
+  function initMP3Player() {
+    const audio = document.getElementById("main-audio") as HTMLAudioElement;
+    const playPauseBtn = document.getElementById("play-pause-btn");
+    const playIcon = document.getElementById("play-icon");
+    const pauseIcon = document.getElementById("pause-icon");
+    const progressFill = document.getElementById("progress-bar-fill");
+    const progressBg = document.getElementById("progress-bar-bg");
+    const vinyl = document.getElementById("vinyl-record");
+    const player = document.getElementById("mars-player");
+    const currentTimeDisplay = document.getElementById("current-time");
+    const durationDisplay = document.getElementById("total-duration");
+    const volumeSlider = document.getElementById(
+      "volume-slider",
+    ) as HTMLInputElement;
+    const forwardBtn = document.getElementById("forward-btn");
+    const rewindBtn = document.getElementById("rewind-btn");
+
+    if (!audio || !playPauseBtn) return;
+
+    let isPlaying = false;
+
+    function togglePlay() {
+      if (isPlaying) {
+        audio.pause();
+      } else {
+        // Audio will start downloading only when user clicks play
+        audio.play().catch((err) => console.warn("Audio play failed:", err));
+      }
+    }
+
+    audio.onplay = () => {
+      isPlaying = true;
+      playIcon?.classList.add("hidden");
+      pauseIcon?.classList.remove("hidden");
+      vinyl?.classList.add("playing");
+      player?.classList.add("is-playing");
+    };
+
+    audio.onpause = () => {
+      isPlaying = false;
+      playIcon?.classList.remove("hidden");
+      pauseIcon?.classList.add("hidden");
+      vinyl?.classList.remove("playing");
+      player?.classList.remove("is-playing");
+    };
+
+    audio.ontimeupdate = () => {
+      const progress = (audio.currentTime / audio.duration) * 100;
+      if (progressFill) progressFill.style.width = `${progress}%`;
+
+      if (currentTimeDisplay) {
+        currentTimeDisplay.innerText = formatTime(audio.currentTime);
+      }
+    };
+
+    audio.onloadedmetadata = () => {
+      if (durationDisplay)
+        durationDisplay.innerText = formatTime(audio.duration);
+    };
+
+    function formatTime(seconds: number) {
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
+    }
+
+    playPauseBtn.addEventListener("click", togglePlay);
+
+    progressBg?.addEventListener("click", (e) => {
+      const rect = progressBg.getBoundingClientRect();
+      const pos = (e.clientX - rect.left) / rect.width;
+      audio.currentTime = pos * audio.duration;
+    });
+
+    forwardBtn?.addEventListener("click", () => (audio.currentTime += 10));
+    rewindBtn?.addEventListener("click", () => (audio.currentTime -= 10));
+
+    volumeSlider?.addEventListener("input", () => {
+      audio.volume = parseFloat(volumeSlider.value);
+    });
+
+    // Performance: Only truly load audio metadata when user hovers or interacts
+    player?.addEventListener(
+      "mouseenter",
+      () => {
+        if (audio.readyState === 0) audio.load();
+      },
+      { once: true },
+    );
+  }
+
+  function initAutoScroll() {
+    const globalWindow = window as any;
+    globalWindow._laguScrollListeners = globalWindow._laguScrollListeners || [];
+    globalWindow._laguScrollListeners.forEach((l: { type: string, fn: EventListener }) => 
+      window.removeEventListener(l.type, l.fn)
+    );
+    globalWindow._laguScrollListeners = [];
+
+    // Hanya jalan di halaman lagu dan ukuran layar mobile/tablet
+    if (!document.querySelector('.lagu-hero')) return;
+    if (window.innerWidth > 1024) return;
+
+    let isScrolling = false;
+    let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
+    let animationFrameId: number | null = null;
+    let exactScrollY = window.scrollY;
+
+    function autoScrollStep() {
+      if (!isScrolling) return;
+
+      const scrollPosition = window.scrollY + window.innerHeight;
+      const bodyHeight = document.documentElement.scrollHeight;
+      
+      // Jika belum di paling bawah, lanjut scroll halus
+      if (scrollPosition < bodyHeight - 10) {
+        // Sinkronisasi posisi jika ada pergeseran manual kecil yang tidak terdeteksi
+        if (Math.abs(exactScrollY - window.scrollY) > 2) {
+          exactScrollY = window.scrollY;
+        }
+
+        exactScrollY += 0.5; // Akumulasi desimal agar browser tetap mau scroll
+        window.scrollTo(0, exactScrollY); 
+        animationFrameId = requestAnimationFrame(autoScrollStep);
+      } else {
+        isScrolling = false; // Langsung diam saat sampai bawah
+      }
+    }
+
+    function resumeScroll() {
+      if (!isScrolling) {
+        // Update titik awal scroll sebelum jalan
+        exactScrollY = window.scrollY;
+        isScrolling = true;
+        animationFrameId = requestAnimationFrame(autoScrollStep);
+      }
+    }
+
+    function pauseScroll() {
+      isScrolling = false;
+      if (animationFrameId !== null) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+      }
+      
+      if (scrollTimeout !== null) {
+        clearTimeout(scrollTimeout);
+      }
+      // Lanjutkan scroll otomatis setelah 3 detik tidak ada sentuhan dari user
+      scrollTimeout = setTimeout(() => {
+        if (!document.querySelector('.lagu-hero')) return;
+        const scrollPosition = window.scrollY + window.innerHeight;
+        const bodyHeight = document.documentElement.scrollHeight;
+        if (scrollPosition < bodyHeight - 10) {
+          resumeScroll();
+        }
+      }, 3000);
+    }
+
+    const attachEvent = (type: string, fn: EventListener) => {
+      window.addEventListener(type, fn, { passive: true });
+      globalWindow._laguScrollListeners.push({ type, fn });
+    };
+
+    // Saat user geser sendiri (pakai tangan/mouse), pause auto-scroll
+    attachEvent('touchstart', pauseScroll as EventListener);
+    attachEvent('touchmove', pauseScroll as EventListener);
+    attachEvent('wheel', pauseScroll as EventListener);
+
+    // Mulai otomatis dengan delay 3 detik awal agar user siap-siap dulu
+    setTimeout(() => {
+      if (document.querySelector('.lagu-hero')) {
+        resumeScroll();
+      }
+    }, 3000);
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    initMP3Player();
+    initAutoScroll();
+  });
+  
+  document.addEventListener("astro:after-swap", () => {
+    initMP3Player();
+    initAutoScroll();
+  });
+</script>

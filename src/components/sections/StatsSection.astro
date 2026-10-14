@@ -1,0 +1,79 @@
+---
+/**
+ * StatsSection.astro
+ * Strip count-up stat horizontal
+ */
+---
+
+<section class="stats-section" id="stats-section">
+  <div class="container-main">
+    <div class="stats-container">
+      <div class="stat-item">
+        <span class="stat-num">75</span>
+        <span class="stat-label">Anggota Aktif</span>
+      </div>
+
+      <div class="stat-item">
+        <span class="stat-num">2025</span>
+        <span class="stat-label">Tahun Angkatan</span>
+      </div>
+
+      <div class="stat-item">
+        <span class="stat-num">1</span>
+        <span class="stat-label">Keluarga</span>
+      </div>
+
+      <div class="stat-item">
+        <span class="stat-num">&infin;</span>
+        <span class="stat-label">Kenangan</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .stats-section {
+    position: relative;
+    z-index: 10;
+    margin: 4rem 0;
+  }
+
+  .stats-container {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid var(--glass-border);
+    border-bottom: 1px solid var(--glass-border);
+    padding: 3rem var(--gutter);
+    border-radius: 16px;
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    gap: 2rem;
+  }
+
+  .stat-item {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 150px;
+  }
+
+  .stat-num {
+    font-family: var(--font-display);
+    font-size: clamp(2.5rem, 5vw, 3.5rem);
+    font-weight: 600;
+    color: var(--color-water-light);
+    line-height: 1.1;
+    margin-bottom: 0.25rem;
+  }
+
+  .stat-label {
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: hsla(0, 0%, 100%, 0.6);
+  }
+</style>

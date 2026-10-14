@@ -1,0 +1,131 @@
+---
+/**
+ * About.astro
+ * Section tentang — overview angkatan SI
+ * Dependencies: GlassCard.astro, global.css (tokens)
+ */
+
+import GlassCard from '../ui/GlassCard.astro';
+
+const stats = [
+  { value: '40+', label: 'Anggota Aktif' },
+  { value: '2024', label: 'Angkatan' },
+  { value: '10+', label: 'Kegiatan/Tahun' },
+  { value: '1', label: 'Keluarga Besar' },
+];
+---
+
+<section class="about section-pad" id="about-section" aria-label="Tentang Kami">
+  <div class="container-main">
+    <!-- Section header -->
+    <div class="about-header fade-in">
+      <p class="section-eyebrow">Tentang Kami</p>
+      <h2 class="section-title">
+        Menjadi bagian dari
+        <span class="text-gradient-water">keluarga besar</span>
+        Sistem Informasi
+      </h2>
+    </div>
+
+    <!-- Content grid -->
+    <div class="about-grid">
+      <div class="about-text fade-in">
+        <p>
+          Cloudsi adalah platform digital yang mempererat hubungan
+          antar anggota angkatan Sistem Informasi di Universitas Tanjungpura.
+          Kami percaya bahwa koneksi yang kuat adalah fondasi kesuksesan bersama.
+        </p>
+        <p>
+          Melalui platform ini, setiap anggota dapat saling mengenal,
+          berbagi pengalaman, dan membangun jaringan yang akan menjadi
+          bekal berharga di masa depan.
+        </p>
+      </div>
+
+      <!-- Stats -->
+      <div class="about-stats fade-in">
+        {stats.map((stat) => (
+          <GlassCard padding="md" class="stat-card">
+            <span class="stat-value">{stat.value}</span>
+            <span class="stat-label">{stat.label}</span>
+          </GlassCard>
+        ))}
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .about-header {
+    max-width: 700px;
+    margin-bottom: 4rem;
+  }
+
+  .section-eyebrow {
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--color-accent-gold);
+    margin-bottom: 1rem;
+  }
+
+  .section-title {
+    font-family: var(--font-display);
+    font-size: var(--font-size-h1);
+    font-weight: 300;
+    color: hsla(0, 0%, 100%, 0.95);
+    line-height: 1.2;
+  }
+
+  .about-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+    align-items: start;
+  }
+
+  .about-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .about-text p {
+    color: hsla(0, 0%, 100%, 0.6);
+    line-height: 1.8;
+  }
+
+  .about-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .stat-card {
+    text-align: center;
+  }
+
+  .stat-value {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 2.5rem;
+    font-weight: 600;
+    color: var(--color-water-light);
+    line-height: 1;
+    margin-bottom: 0.5rem;
+  }
+
+  .stat-label {
+    font-size: 0.8rem;
+    color: hsla(0, 0%, 100%, 0.5);
+    letter-spacing: 0.04em;
+  }
+
+  @media (max-width: 768px) {
+    .about-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

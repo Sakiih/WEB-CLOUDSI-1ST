@@ -1,0 +1,596 @@
+---
+/**
+ * CloudBackground.astro
+ * Efek Animasi Awan Pengganti Video Looping
+ *
+ * MEMORY LEAK FIX: Uses Global Singleton Controller pattern.
+ * - window.CloudSI_Cloud = { initialized, cleanup }
+ * - Explicit VRAM disposal (deleteShader, deleteProgram, deleteBuffer, loseContext)
+ * - No { once: true } on astro:before-swap
+ * - All rAF tracked and cancelled
+ *
+ * PERFORMANCE TIERS:
+ * - ULTRA/NORMAL: Full WebGL cloud shader
+ * - LOW: Reduced FBM iterations (5→3), lower resolution
+ * - BATTERY_SAVER: Static CSS gradient background, no WebGL
+ */
+---
+
+<canvas
+  id="cloud-canvas"
+  class="fixed inset-0 w-full h-full object-cover pointer-events-none"></canvas>
+
+<!-- Backdrop blur overlay -->
+<div
+  id="cloud-overlay"
+  class="fixed inset-0 pointer-events-none"
+  style="background-color: hsla(210, 60%, 6%, var(--overlay-alpha, 0.40));  -webkit-backdrop-filter: blur(1px);"
+>
+</div>
+
+<!-- Static fallback for BATTERY_SAVER -->
+<div
+  id="cloud-fallback"
+  class="cloud-static-fallback"
+  aria-hidden="true"
+  style="display: none;"
+>
+</div>
+
+<style>
+  #cloud-canvas {
+    z-index: 0;
+  }
+
+  .cloud-static-fallback {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    pointer-events: none;
+    background: linear-gradient(
+      180deg,
+      hsl(210, 60%, 6%) 0%,
+      hsl(205, 55%, 10%) 30%,
+      hsl(200, 50%, 14%) 60%,
+      hsl(210, 60%, 6%) 100%
+    );
+  }
+</style>
+
+<script is:inline>
+  (function () {
+    "use strict";
+
+    // =============================================
+    // GLOBAL SINGLETON CONTROLLER
+    // =============================================
+    window.CloudSI_Cloud = window.CloudSI_Cloud || {
+      initialized: false,
+      cleanup: null,
+    };
+
+    function initCloudCanvas() {
+      // If already initialized, cleanup first to prevent duplicates
+      if (
+        window.CloudSI_Cloud.initialized &&
+        typeof window.CloudSI_Cloud.cleanup === "function"
+      ) {
+        window.CloudSI_Cloud.cleanup();
+      }
+
+      var canvas = document.getElementById("cloud-canvas");
+      if (!canvas) return;
+
+      // DETEKSI HP if HP=disable
+      var physicalScreenSmall = window.screen && window.screen.width < 900;
+      var isMobileHardware =
+        /Mobi|Android|iPhone/i.test(navigator.userAgent) ||
+        navigator.maxTouchPoints > 0;
+      var hasMultiTouch = navigator.maxTouchPoints > 1;
+      var resDpr = isMobileHardware ? 0.25 : tier === "ULTRA" ? 0.5 : 0.35;
+      var fbmIterations = isMobileHardware ? 2 : tier === "LOW" ? 3 : 5;
+      var uaIsMobile =
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+          navigator.userAgent,
+        );
+      var innerWidthSmall = window.innerWidth <= 768;
+      var isMobileCheck =
+        uaIsMobile || innerWidthSmall || (physicalScreenSmall && hasMultiTouch);
+      if (isMobileCheck) {
+        canvas.style.display = "none";
+        var fallback = document.getElementById("cloud-fallback");
+        if (fallback) fallback.style.display = "block";
+        return;
+      }
+
+      // =============================================
+      // PERFORMANCE TIER CHECK
+      // =============================================
+      var tier = sessionStorage.getItem("cloudsi_perf_tier") || "NORMAL";
+
+      // BATTERY_SAVER / LOW: Static gradient, no WebGL
+      if (tier === "BATTERY_SAVER" || tier === "LOW") {
+        canvas.style.display = "none";
+        var fallback = document.getElementById("cloud-fallback");
+        if (fallback) fallback.style.display = "block";
+        return;
+      }
+
+      var prefersReduced = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+      if (prefersReduced) {
+        canvas.style.display = "none";
+        var fallback = document.getElementById("cloud-fallback");
+        if (fallback) fallback.style.display = "block";
+        return;
+      }
+
+      var gl = canvas.getContext("webgl");
+      if (!gl) {
+        console.warn("[Cloudsi] Browser tidak mendukung WebGL.");
+        canvas.style.display = "none";
+        var fallback = document.getElementById("cloud-fallback");
+        if (fallback) fallback.style.display = "block";
+        return;
+      }
+
+      // FBM iterations based on tier: ULTRA/NORMAL = 5, LOW = 3
+      var fbmIterations = tier === "LOW" ? 3 : 5;
+
+      var vertexShaderSource = `
+          attribute vec2 a_position;
+          void main() {
+              gl_Position = vec4(a_position, 0.0, 1.0);
+          }
+      `;
+
+      // Build fragment shader dynamically based on FBM iterations
+      var fragmentShaderSource =
+        `
+          precision highp float;
+
+          uniform vec2 u_resolution;
+          uniform float u_time;
+          uniform float u_scrollProgress;
+
+          float hash(vec2 p) {
+              p = fract(p * vec2(234.34, 435.345));
+              p += dot(p, p + 34.23);
+              return fract(p.x * p.y);
+          }
+
+          float noise(vec2 p) {
+              vec2 i = floor(p);
+              vec2 f = fract(p);
+              vec2 u = f * f * (3.0 - 2.0 * f); 
+              return mix(mix(hash(i + vec2(0.0,0.0)), hash(i + vec2(1.0,0.0)), u.x),
+                         mix(hash(i + vec2(0.0,1.0)), hash(i + vec2(1.0,1.0)), u.x), u.y);
+          }
+
+          float fbm(vec2 p) {
+              float v = 0.0;
+              float a = 0.5;
+              mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.5));
+              for (int i = 0; i < ` +
+        fbmIterations +
+        `; i++) {
+                  v += a * noise(p);
+                  p = rot * p * 2.0 + vec2(100.0);
+                  a *= 0.5;
+              }
+              return v;
+          }
+          
+          vec4 renderCloud(vec2 uv, float scale, float speed, float time, float densityMin, float densityMax, vec2 lightDir, float scrollProg) {
+              vec2 pos = uv * scale;
+              
+              pos.x += time * speed * 2.5; 
+              pos.y += time * speed * 0.1;
+              
+              vec2 q = vec2(fbm(pos + time * 0.01), fbm(pos + vec2(5.2, 1.3) - time * 0.01));
+              vec2 r = vec2(fbm(pos + 0.3 * q + time * 0.015), fbm(pos + 0.3 * q + vec2(4.1, 1.9) + time * 0.015));
+              
+              float cloudVal = fbm(pos + 0.6 * r);
+              float alpha = smoothstep(densityMin, densityMax, cloudVal);
+              
+              float lightSample = fbm(pos + 0.6 * r + lightDir * 0.1); 
+              float rimLight = clamp(cloudVal - lightSample, 0.0, 1.0);
+              rimLight = smoothstep(0.0, 0.4, rimLight);
+              float shadow = smoothstep(densityMin, densityMax * 1.2, cloudVal);
+              
+              vec3 cDarkNight = vec3(0.05, 0.07, 0.12); 
+              vec3 cMidNight = vec3(0.12, 0.16, 0.22);  
+              vec3 cLightNight = vec3(0.35, 0.45, 0.55); 
+              
+              vec3 cDarkDay = vec3(0.35, 0.45, 0.60);
+              vec3 cMidDay = vec3(0.65, 0.75, 0.85);
+              vec3 cLightDay = vec3(1.0, 1.0, 1.0);
+              
+              vec3 cDark = mix(cDarkNight, cDarkDay, scrollProg);
+              vec3 cMid = mix(cMidNight, cMidDay, scrollProg);
+              vec3 cLight = mix(cLightNight, cLightDay, scrollProg);
+              
+              vec3 color = mix(cDark, cMid, shadow);
+              
+              float contrast = mix(1.0, 1.3, scrollProg);
+              color = (color - 0.5) * contrast + 0.5;
+              
+              float rimMult = mix(0.5, 1.2, scrollProg);
+              color = mix(color, cLight, rimLight * rimMult); 
+              
+              return vec4(color, alpha);
+          }
+
+          void main() {
+              vec2 uvOrig = gl_FragCoord.xy / u_resolution.xy;
+              vec2 p = uvOrig * 2.0 - 1.0;
+              p.x *= u_resolution.x / u_resolution.y; 
+
+              vec2 lightDir = normalize(vec2(0.2, 1.0));
+
+              vec3 nightZenith = vec3(0.002, 0.005, 0.015);
+              vec3 nightHorizon = vec3(0.03, 0.05, 0.12);
+              vec3 dayZenith = vec3(0.15, 0.35, 0.75);
+              vec3 dayHorizon = vec3(0.65, 0.82, 0.96);
+              
+              vec3 skyNight = mix(nightHorizon, nightZenith, smoothstep(0.0, 0.6, uvOrig.y));
+              vec3 skyDay = mix(dayHorizon, dayZenith, smoothstep(0.0, 0.7, uvOrig.y));
+              vec3 skyBase = mix(skyNight, skyDay, u_scrollProgress);
+              
+              float sunriseIntensity = smoothstep(0.1, 0.3, u_scrollProgress) * smoothstep(0.5, 0.3, u_scrollProgress);
+              vec3 sunriseColor = vec3(1.0, 0.5, 0.3); 
+              float sunriseBand = smoothstep(0.6, 0.0, uvOrig.y) * sunriseIntensity;
+              skyBase = mix(skyBase, sunriseColor, sunriseBand * 0.6);
+              
+              vec3 finalColor = skyBase;
+
+              vec2 mPos = vec2(1.2, 0.7); 
+              float mDist = length(p - mPos);
+              float mFade = smoothstep(0.3, 0.1, u_scrollProgress);
+              float mCore = smoothstep(0.08, 0.06, mDist);
+              float mGlow = exp(-mDist * 3.0) * 0.4;
+              vec3 mColor = vec3(0.9, 0.95, 1.0) * mFade;
+              finalColor += (mCore + mGlow) * mColor;
+              
+              vec2 sPos = vec2(1.0, 0.6);
+              float sDist = length(p - sPos);
+              float sFade = smoothstep(0.5, 0.7, u_scrollProgress);
+              float sCore = smoothstep(0.1, 0.05, sDist);
+              float sGlow = exp(-sDist * 1.5) * 0.8;
+              vec3 sColor = vec3(1.0, 0.9, 0.8) * sFade;
+              finalColor += (sCore + sGlow) * sColor;
+
+              vec2 starGrid = floor(p * 120.0); 
+              float starRnd = hash(starGrid);  
+              
+              if(starRnd > 0.92) {
+                  float phase = hash(starGrid + vec2(13.5, 42.1)) * 6.2831; 
+                  float blinkSpeed = 1.0 + hash(starGrid + vec2(73.1, 12.4)) * 2.0; 
+                  float twinkle = 0.3 + 0.7 * sin(u_time * blinkSpeed + phase);
+                  
+                  vec2 starPosWithinGrid = fract(p * 120.0) - 0.5;
+                  float starGlow = exp(-length(starPosWithinGrid) * 22.0);
+                  
+                  float starFade = smoothstep(0.35, 0.0, u_scrollProgress);
+                  finalColor += vec3(0.85, 0.9, 1.0) * starGlow * twinkle * starFade;
+              }
+
+              float hBias = uvOrig.y * 0.25; 
+              float cloudTime = 42.0; // Bekukan awan
+              
+              vec4 c1 = renderCloud(p, 2.5, 0.010, cloudTime, 0.25 + hBias, 0.8, lightDir, u_scrollProgress);
+              finalColor = mix(finalColor, c1.rgb, c1.a * 0.90);
+              
+              vec4 c2 = renderCloud(p + vec2(1.1), 1.8, 0.015, cloudTime, 0.30 + hBias, 0.85, lightDir, u_scrollProgress);
+              finalColor = mix(finalColor, c2.rgb, c2.a * 0.90);
+              
+              vec4 c3 = renderCloud(p + vec2(2.2), 1.2, 0.025, cloudTime, 0.35 + hBias, 0.9, lightDir, u_scrollProgress);
+              finalColor = mix(finalColor, c3.rgb, c3.a * 0.95);
+              ` +
+        (tier !== "LOW"
+          ? `
+              vec4 c4 = renderCloud(p + vec2(3.3), 0.7, 0.035, cloudTime, 0.40 + hBias, 0.95, lightDir, u_scrollProgress);
+              finalColor = mix(finalColor, c4.rgb, c4.a * 0.95);
+              
+              vec4 c5 = renderCloud(p + vec2(4.4), 0.3, 0.050, cloudTime, 0.50 + hBias, 1.0, lightDir, u_scrollProgress);
+              finalColor = mix(finalColor, c5.rgb, c5.a * 0.95);
+              `
+          : "") +
+        `
+
+              float vignette = length(uvOrig - 0.5);
+              finalColor *= smoothstep(1.0, 0.2, vignette);
+
+              finalColor = (finalColor * (2.51 * finalColor + 0.03)) / (finalColor * (2.43 * finalColor + 0.59) + 0.14);
+
+              gl_FragColor = vec4(finalColor, 1.0);
+          }
+      `;
+
+      function compileShader(glCtx, type, source) {
+        var shader = glCtx.createShader(type);
+        glCtx.shaderSource(shader, source);
+        glCtx.compileShader(shader);
+        if (!glCtx.getShaderParameter(shader, glCtx.COMPILE_STATUS)) {
+          console.error("SHADER ERROR: ", glCtx.getShaderInfoLog(shader));
+          glCtx.deleteShader(shader);
+          return null;
+        }
+        return shader;
+      }
+
+      var vertexShader = compileShader(
+        gl,
+        gl.VERTEX_SHADER,
+        vertexShaderSource,
+      );
+      var fragmentShader = compileShader(
+        gl,
+        gl.FRAGMENT_SHADER,
+        fragmentShaderSource,
+      );
+
+      if (!vertexShader || !fragmentShader) {
+        canvas.style.display = "none";
+        var fallback = document.getElementById("cloud-fallback");
+        if (fallback) fallback.style.display = "block";
+        return;
+      }
+
+      var program = gl.createProgram();
+      gl.attachShader(program, vertexShader);
+      gl.attachShader(program, fragmentShader);
+      gl.linkProgram(program);
+      gl.useProgram(program);
+
+      var positionBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+      var positions = new Float32Array([
+        -1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1,
+      ]);
+      gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+
+      var posAttr = gl.getAttribLocation(program, "a_position");
+      gl.enableVertexAttribArray(posAttr);
+      gl.vertexAttribPointer(posAttr, 2, gl.FLOAT, false, 0, 0);
+
+      var resUnif = gl.getUniformLocation(program, "u_resolution");
+      var timeUnif = gl.getUniformLocation(program, "u_time");
+      var scrollUnif = gl.getUniformLocation(program, "u_scrollProgress");
+
+      // ULTRA: 0.5x | NORMAL: 0.35x
+      var resDpr = tier === "ULTRA" ? 0.5 : 0.35;
+
+      // FPS cap per tier — cuts GPU load without removing the effect
+      // ULTRA: 60fps | NORMAL: 30fps | LOW: 20fps
+      var fpsTarget = tier === "ULTRA" ? 60 : tier === "LOW" ? 20 : 30;
+      var fpsInterval = 1000 / fpsTarget;
+      var lastFrameTime = 0;
+
+      function resize() {
+        canvas.width = window.innerWidth * resDpr;
+        canvas.height = window.innerHeight * resDpr;
+        gl.viewport(0, 0, canvas.width, canvas.height);
+        gl.uniform2f(resUnif, canvas.width, canvas.height);
+      }
+      window.addEventListener("resize", resize);
+      resize();
+
+      // =============================================
+      // SCROLL ENGINE & LIFECYCLE
+      // =============================================
+      var startTime = Date.now();
+      var rafId = null;
+      var isDestroyed = false;
+
+      // =============================================
+      // TIME-OF-DAY DETECTION — initial state follows clock
+      // 3 stages: noon (1.0), sunset (0.3), night (0.0)
+      // =============================================
+      var _hour = new Date().getHours();
+      var timeBaseProgress;
+      if (_hour >= 6 && _hour < 16)
+        timeBaseProgress = 1.0; // Noon (siang)
+      else if (_hour >= 16 && _hour < 19)
+        timeBaseProgress = 0.3; // Sunset (senja)
+      else timeBaseProgress = 0.0; // Night (malam)
+      var isDaytime = timeBaseProgress >= 0.5;
+
+      var rawScrollY = window.scrollY || 0.0;
+      var renderScrollProgress = timeBaseProgress;
+
+      function calculateDocHeight() {
+        var h1 = document.body ? document.body.scrollHeight : 0;
+        var h2 = document.documentElement
+          ? document.documentElement.scrollHeight
+          : 0;
+        var maxH = Math.max(h1, h2);
+        return Math.max(1, maxH - window.innerHeight);
+      }
+
+      var docHeight = calculateDocHeight();
+
+      var resizeObserver = new ResizeObserver(function () {
+        docHeight = calculateDocHeight();
+      });
+      if (document.documentElement) {
+        resizeObserver.observe(document.documentElement);
+      }
+
+      function onScroll() {
+        rawScrollY = window.scrollY || 0.0;
+      }
+      window.addEventListener("scroll", onScroll, { passive: true });
+
+      var overlayEl = document.getElementById("cloud-overlay");
+
+      // =============================================
+      // RENDER ENGINE — Bintang Kedip di Desktop Saja
+      // Awan tetap statis/beku untuk semua perangkat.
+      // =============================================
+      var FROZEN_TIME = 42.0; 
+      var pendingRender = false;
+      var isDesktop = !isMobileCheck;
+      var timeAccumulator = FROZEN_TIME;
+      var lastTimestamp = 0;
+
+      function drawFrame(timestamp) {
+        if (isDestroyed) return;
+        pendingRender = false;
+
+        // Animasikan u_time hanya di desktop untuk kedipan bintang
+        if (isDesktop && timestamp) {
+          if (!lastTimestamp) lastTimestamp = timestamp;
+          var dt = (timestamp - lastTimestamp) / 1000.0;
+          if (dt > 0.1) dt = 0.1; // clamp
+          timeAccumulator += dt;
+          lastTimestamp = timestamp;
+          gl.uniform1f(timeUnif, timeAccumulator);
+        } else {
+          // Mobile: waktu dibekukan penuh
+          gl.uniform1f(timeUnif, FROZEN_TIME);
+        }
+
+        // Update scroll progress (Siang/Malam transisi)
+        var scrollFraction = Math.max(
+          0.0,
+          Math.min(1.0, rawScrollY / docHeight),
+        );
+        if (timeBaseProgress > 0.0) {
+          renderScrollProgress = timeBaseProgress * (1.0 - scrollFraction);
+        } else {
+          renderScrollProgress = scrollFraction;
+        }
+        gl.uniform1f(scrollUnif, renderScrollProgress);
+
+        // Update overlay alpha
+        if (overlayEl) {
+          var overlayAlpha = 0.4 - (0.4 - 0.05) * renderScrollProgress;
+          overlayEl.style.setProperty(
+            "--overlay-alpha",
+            overlayAlpha.toFixed(4),
+          );
+        }
+
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+        // Terus melooping animasi jika di desktop
+        if (isDesktop) {
+          rafId = requestAnimationFrame(drawFrame);
+        }
+      }
+
+      function requestDraw() {
+        // Desktop tidak butuh request manual karena sudah looping otomatis
+        if (pendingRender || isDestroyed || isDesktop) return; 
+        pendingRender = true;
+        rafId = requestAnimationFrame(drawFrame);
+      }
+
+      // Render ulang saat scroll (sangat penting untuk mobile)
+      var _origOnScroll = onScroll;
+      window.removeEventListener("scroll", onScroll);
+      function onScrollStatic() {
+        rawScrollY = window.scrollY || 0.0;
+        requestDraw();
+      }
+      window.addEventListener("scroll", onScrollStatic, { passive: true });
+      onScroll = onScrollStatic; // update ref untuk cleanup
+
+      // Mulai render pertama kali
+      if (isDesktop) {
+        rafId = requestAnimationFrame(drawFrame);
+      } else {
+        drawFrame();
+      }
+
+      // =============================================
+      // FULL CLEANUP — VRAM DISPOSAL + LISTENER REMOVAL
+      // =============================================
+      function fullCleanup() {
+        isDestroyed = true; // First operation
+
+        console.log(
+          "[Cloudsi] CloudBackground: Full cleanup — disposing VRAM.",
+        );
+
+        // 1. Stop animation loop
+        if (rafId !== null) {
+          cancelAnimationFrame(rafId);
+          rafId = null;
+        }
+
+        // 2. Remove event listeners
+        window.removeEventListener("resize", resize);
+        window.removeEventListener("scroll", onScroll);
+        if (resizeObserver) resizeObserver.disconnect();
+
+        // 3. Explicit VRAM disposal — delete shaders, programs, buffers
+        try {
+          // Detach and delete shaders
+          if (vertexShader) {
+            gl.detachShader(program, vertexShader);
+            gl.deleteShader(vertexShader);
+          }
+          if (fragmentShader) {
+            gl.detachShader(program, fragmentShader);
+            gl.deleteShader(fragmentShader);
+          }
+
+          // Delete the program
+          if (program) {
+            gl.deleteProgram(program);
+          }
+
+          // Delete the position buffer
+          if (positionBuffer) {
+            gl.deleteBuffer(positionBuffer);
+          }
+        } catch (e) {
+          console.warn("[Cloudsi] CloudBackground cleanup (GPU resources):", e);
+        }
+
+        // 4. Lose WebGL context entirely
+        try {
+          var ext = gl.getExtension("WEBGL_lose_context");
+          if (ext) ext.loseContext();
+        } catch (e) {}
+
+        // 5. Reset singleton state
+        window.CloudSI_Cloud.initialized = false;
+        window.CloudSI_Cloud.cleanup = null;
+      }
+
+      // Register cleanup on the global singleton
+      window.CloudSI_Cloud.initialized = true;
+      window.CloudSI_Cloud.cleanup = fullCleanup;
+
+      // =============================================
+      // ASTRO VIEW TRANSITION HANDLER
+      // NO { once: true } — persistent listener
+      // =============================================
+      document.addEventListener("astro:before-swap", function () {
+        if (
+          window.CloudSI_Cloud &&
+          typeof window.CloudSI_Cloud.cleanup === "function"
+        ) {
+          window.CloudSI_Cloud.cleanup();
+        }
+      });
+    }
+
+    function scheduleCloud() {
+      if ("requestIdleCallback" in window) {
+        requestIdleCallback(initCloudCanvas, { timeout: 1000 });
+      } else {
+        setTimeout(initCloudCanvas, 300);
+      }
+    }
+    document.addEventListener("DOMContentLoaded", scheduleCloud);
+    document.addEventListener("astro:after-swap", scheduleCloud);
+  })();
+</script>

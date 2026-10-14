@@ -1,0 +1,64 @@
+---
+/**
+ * Gallery.astro
+ * Section galeri — grid gambar dari kegiatan
+ * Dependencies: GlassCard.astro, global.css (tokens)
+ */
+---
+
+<section class="gallery section-pad" id="gallery-section" aria-label="Galeri">
+  <div class="container-main">
+    <div class="gallery-header fade-in">
+      <p class="section-eyebrow">Galeri</p>
+      <h2 class="section-title">
+        Momen <span class="text-gradient-water">berharga</span> bersama
+      </h2>
+    </div>
+
+    <div class="gallery-grid fade-in">
+      <slot />
+      <!-- Gallery items akan diisi dari halaman galeri lewat slot -->
+      <p class="gallery-empty" id="gallery-empty">
+        Galeri akan segera hadir dengan momen-momen terbaik angkatan.
+      </p>
+    </div>
+  </div>
+</section>
+
+<style>
+  .gallery-header {
+    max-width: 600px;
+    margin-bottom: 3rem;
+  }
+
+  .section-eyebrow {
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--color-accent-gold);
+    margin-bottom: 1rem;
+  }
+
+  .section-title {
+    font-family: var(--font-display);
+    font-size: var(--font-size-h1);
+    font-weight: 300;
+    color: hsla(0, 0%, 100%, 0.95);
+  }
+
+  .gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+  }
+
+  .gallery-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: hsla(0, 0%, 100%, 0.4);
+    padding: 4rem 2rem;
+    font-style: italic;
+  }
+</style>

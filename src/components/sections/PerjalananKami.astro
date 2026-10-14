@@ -1,0 +1,459 @@
+---
+/**
+ * PerjalananKami.astro
+ * Section #perjalanan-kami - Awwwards Style Timeline Animation
+ * Custom physics UI: SVG line drawing, staggering, parallax, glassmorphism spring.
+ */
+
+const TIMELINE_DATA = [
+  {
+    tanggal: '11 Agustus 2025',
+    judul: 'CLOUDSI Berdiri',
+    deskripsi: 'Hari pertama kuliah. Dari ratusan orang yang belum saling kenal, angkatan Sistem Informasi 2025 resmi terbentuk.'
+  },
+  {
+    tanggal: 'Agustus–September 2025',
+    judul: 'PARTISI',
+    deskripsi: 'Masa orientasi yang panjang. Di sini kami mulai belajar beradaptasi dan pelan-pelan mengenal satu sama lain.'
+  },
+  {
+    tanggal: '2025',
+    judul: 'PMKM — Desa Jeruju Besar',
+    deskripsi: 'Pengalaman turun langsung ke lapangan. Berinteraksi dengan warga dan mencoba memberi dampak nyata dari apa yang dipelajari di kelas.'
+  },
+  {
+    tanggal: '2026',
+    judul: 'Kepanitiaan INFEST 2026',
+    deskripsi: 'Pertama kalinya kami terlibat dalam pengelolaan acara besar. Banyak yang kami pelajari dari proses ini.'
+  },
+  {
+    tanggal: '2025',
+    judul: 'SI Gathering 2025',
+    deskripsi: 'Dipercaya menjadi panitia. Momen ini cukup membuktikan bahwa angkatan 2025 bisa bekerja dalam tim.'
+  },
+  {
+    tanggal: '2025–2026',
+    judul: 'Lomba & Kompetisi',
+    deskripsi: 'Catur, Voli tingkat fakultas, hingga Seleksi Pilmapres. Kami mulai berani mencoba di luar ruang kelas.'
+  },
+  {
+    tanggal: 'Sekarang',
+    judul: 'Website Angkatan CLOUDSI',
+    deskripsi: 'Proyek saya yang sedang berjalan sendiri. ini Lebih dari sekadar kode, ini adalah bukti untuk menambahkan skil di portofolio saya dan juga kenang kenangan angkatan saya.'
+  }
+];
+---
+
+<section id="perjalanan-kami" class="pk-section section-pad">
+  <div class="container-main pk-container">
+    <h2 class="section-heading">Perjalanan Kami</h2>
+
+    <div class="pk-wrapper" id="pk-wrapper">
+      
+      <!-- Garis Animasi Murni (Liquid Flow menggunakan ScaleY demi keakuratan 100%) -->
+      <div class="pk-track" id="pk-track" aria-hidden="true">
+        <div class="pk-line-bg"></div>
+        <div class="pk-global-fill" id="pk-global-fill"></div>
+      </div>
+
+      <!-- Item List -->
+      {TIMELINE_DATA.map((item, index) => {
+        const isLeft = index % 2 === 0;
+        return (
+          <div class={`pk-item ${isLeft ? 'pk-left' : 'pk-right'} css-fade-up`} data-pk-item data-index={index}>
+            
+            <!-- Posisi Dot -->
+            <div class="pk-dot-wrap" aria-hidden="true">
+              <div class="pk-dot"></div>
+            </div>
+
+            <!-- Card: Animasi Masuk Cinematic -->
+            <button class="pk-card" aria-label={`Detail: ${item.judul}`} type="button">
+              <span class="pk-date">{item.tanggal}</span>
+              <h3 class="pk-title">{item.judul}</h3>
+              <span class="pk-hidden-desc" aria-hidden="true" style="display:none;">{item.deskripsi}</span>
+            </button>
+
+          </div>
+        )
+      })}
+    </div>
+  </div>
+
+  <!-- Glassmorphism Physics Panel Modal -->
+  <div class="pk-modal" id="pk-modal" aria-hidden="true">
+    <div class="pk-modal-backdrop" id="pk-modal-backdrop" tabindex="-1"></div>
+    <div class="pk-modal-panel glass-panel" role="dialog" aria-modal="true" aria-labelledby="pk-modal-title">
+      <button class="pk-modal-close" id="pk-modal-close" aria-label="Tutup Detail" type="button">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+      <div class="pk-modal-content">
+        <span class="pk-modal-date" id="pk-modal-date"></span>
+        <h3 class="pk-modal-title" id="pk-modal-title"></h3>
+        <p class="pk-modal-desc" id="pk-modal-desc"></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  /* === ROOT SETTINGS === */
+  .pk-section {
+    position: relative;
+    overflow: hidden; /* Prevent horizontal scroll dari card offset */
+  }
+
+  .pk-container {
+    max-width: 900px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  .section-heading {
+    font-family: var(--font-display);
+    font-size: var(--font-size-h2);
+    font-weight: 300;
+    color: white;
+    text-align: center;
+    margin-bottom: 5rem;
+  }
+
+  /* === TIMELINE TRACK & LINE === */
+  .pk-wrapper {
+    position: relative;
+    padding: 2rem 0;
+  }
+
+  .pk-track {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 2px;
+    z-index: 1;
+  }
+
+  .pk-line-bg {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    width: 2px;
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .pk-global-fill {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    width: 2px;
+    background: #38bdf8;
+  }
+
+  /* === ITEM LAYOUT === */
+  .pk-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-bottom: 2rem;
+    width: 100%;
+    z-index: 3;
+    perspective: 1000px; /* Perspective disematkan di kontainer item */
+  }
+
+  /* Kiri & Kanan (Desktop) */
+  .pk-left {
+    justify-content: flex-start;
+    padding-right: 50%;
+  }
+  .pk-right {
+    justify-content: flex-end;
+    padding-left: 50%;
+  }
+
+  /* === DOT & RIPPLE ENTRANCES (Delay 0ms) === */
+  .pk-dot-wrap {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 4;
+  }
+
+  .pk-dot {
+    width: 16px;
+    height: 16px;
+    background: #38bdf8;
+    border-radius: 50%;
+    transform: scale(1);
+  }
+
+  .pk-card {
+    position: relative;
+    width: calc(100% - 40px); /* Padding terhadap garis/pinggir */
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 1.5rem;
+    cursor: pointer;
+    text-align: left;
+    outline: none;
+    
+    opacity: 1;
+    transform: none;
+    clip-path: none;
+    
+    /* Hanya untuk hover effect */
+    transition: 
+      transform 200ms ease,
+      border-color 200ms ease,
+      background 200ms ease;
+  }
+
+  /* Spacing */
+  .pk-left .pk-card {
+    margin-right: 40px;
+  }
+  .pk-right .pk-card {
+    margin-left: 40px;
+  }
+  
+  /* Hover effect card */
+  .pk-card:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(56, 189, 248, 0.4);
+    transform: translateY(-4px) scale(1.02);
+  }
+
+  /* Texts */
+  .pk-date {
+    display: block;
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    color: #38bdf8;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
+  .pk-title {
+    font-family: var(--font-display);
+    font-size: 1.35rem;
+    font-weight: 500;
+    color: white;
+    margin: 0;
+    line-height: 1.3;
+  }
+
+  /* === GLASSMORPHISM PHYSICS MODAL === */
+  .pk-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 300ms ease;
+    will-change: opacity;
+  }
+  .pk-modal.is-open {
+    pointer-events: auto;
+    opacity: 1;
+  }
+
+  .pk-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  /* 6. Base modal glass styling */
+  .glass-panel {
+    position: relative;
+    width: 92%;
+    max-width: 500px;
+    background: linear-gradient(
+      165deg,
+      rgba(10, 25, 50, 0.85) 0%,
+      rgba(5, 15, 30, 0.95) 100%
+    );
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    border-radius: 24px;
+    padding: 2.5rem 2.2rem;
+    transform: scale(0.95);
+    transform-origin: top center;
+    transition: transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 300ms ease;
+    box-shadow: 0 40px 60px -15px rgba(0, 0, 0, 0.6);
+    z-index: 2;
+    color: white;
+    will-change: transform;
+  }
+
+  .pk-modal.is-open .glass-panel {
+    transform: scale(1);
+  }
+
+  .pk-modal-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    padding: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s, transform 0.2s;
+  }
+  .pk-modal-close:hover {
+    color: white;
+    transform: scale(1.1);
+  }
+
+  .pk-modal-date {
+    display: block;
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    color: #38bdf8;
+    margin-bottom: 0.6rem;
+    font-weight: 600;
+  }
+
+  .pk-modal-title {
+    font-family: var(--font-display);
+    font-size: 1.85rem;
+    font-weight: 500;
+    margin: 0 0 1.25rem 0;
+    line-height: 1.2;
+  }
+
+  .pk-modal-desc {
+    font-family: var(--font-body);
+    font-size: 1.05rem;
+    color: rgba(255, 255, 255, 0.85);
+    line-height: 1.7;
+    margin: 0;
+  }
+
+  /* === RESPONSIVE CONSTRAINTS === */
+  
+  /* Mobile */
+  @media (max-width: 768px) {
+    .pk-track {
+      left: 1.5rem;
+    }
+    .pk-item {
+      padding-left: 3.5rem;     
+      padding-right: 0;
+      justify-content: flex-start;
+    }
+    .pk-left, .pk-right {
+      padding-left: 3.5rem;
+      padding-right: 0;
+    }
+    .pk-dot-wrap {
+      left: 1.5rem;
+    }
+    .pk-left .pk-card, .pk-right .pk-card {
+      width: 100%;
+      margin: 0;
+    }
+  }
+</style>
+
+<script is:inline>
+(function() {
+  function initTimelineModal() {
+    var cards = document.querySelectorAll('.pk-card');
+    var modal = document.getElementById('pk-modal');
+    var backdrop = document.getElementById('pk-modal-backdrop');
+    var btnClose = document.getElementById('pk-modal-close');
+    
+    var mDate = document.getElementById('pk-modal-date');
+    var mTitle = document.getElementById('pk-modal-title');
+    var mDesc = document.getElementById('pk-modal-desc');
+
+    function openModal(date, title, desc) {
+      if (!modal || !mDate || !mTitle || !mDesc) return;
+      mDate.textContent = date;
+      mTitle.textContent = title;
+      mDesc.textContent = desc;
+      modal.classList.add('is-open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal() {
+      if (!modal) return;
+      modal.classList.remove('is-open');
+      document.body.style.overflow = '';
+      setTimeout(function() {
+        if (!modal.classList.contains('is-open')) {
+           if(mDate) mDate.textContent = '';
+           if(mTitle) mTitle.textContent = '';
+           if(mDesc) mDesc.textContent = '';
+        }
+      }, 300);
+    }
+
+    // Bind cards (clone to remove stale listeners left by Astro DOM swapping)
+    cards.forEach(function(card) {
+      var newCard = card.cloneNode(true);
+      if(card.parentNode) {
+        card.parentNode.replaceChild(newCard, card);
+      }
+      newCard.addEventListener('click', function() {
+        var dateEl = newCard.querySelector('.pk-date');
+        var titleEl = newCard.querySelector('.pk-title');
+        var descEl = newCard.querySelector('.pk-hidden-desc');
+        var date = dateEl ? dateEl.textContent : '';
+        var title = titleEl ? titleEl.textContent : '';
+        var desc = descEl ? descEl.textContent : '';
+        openModal(date, title, desc);
+      });
+    });
+
+    // Re-bind modal triggers
+    if(backdrop) {
+      var newBackdrop = backdrop.cloneNode(true);
+      if(backdrop.parentNode) backdrop.parentNode.replaceChild(newBackdrop, backdrop);
+      newBackdrop.addEventListener('click', closeModal);
+    }
+    
+    if(btnClose) {
+      var newBtnClose = btnClose.cloneNode(true);
+      if(btnClose.parentNode) btnClose.parentNode.replaceChild(newBtnClose, btnClose);
+      newBtnClose.addEventListener('click', closeModal);
+    }
+
+    // Wipe escape listener & rebind
+    document.removeEventListener('keydown', window.__pkHandleEscape);
+    window.__pkHandleEscape = function(e) {
+      var activeModal = document.getElementById('pk-modal');
+      if (e.key === 'Escape' && activeModal && activeModal.classList.contains('is-open')) {
+        closeModal();
+      }
+    };
+    document.addEventListener('keydown', window.__pkHandleEscape);
+  }
+
+  // Dual initialization for SSR / SPA mode
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initTimelineModal);
+  } else {
+    initTimelineModal();
+  }
+  document.addEventListener('astro:after-swap', initTimelineModal);
+})();
+</script>

@@ -1,0 +1,153 @@
+---
+/**
+ * PageTransition.astro — LIGHTWEIGHT v4
+ *
+ * Ultra-ringan: opacity-only fade, tanpa blur/scale.
+ * Tidak ada setInterval, tidak ada getComputedStyle polling.
+ *
+ * MEMORY LEAK FIX: Acts as global execution trigger.
+ * Calls CloudSI_Water.cleanup() and CloudSI_Cloud.cleanup()
+ * on astro:before-swap to ensure full VRAM disposal before DOM swap.
+ */
+---
+
+<slot />
+
+<style is:global>
+  /* ANTI-WHITE-FLASH FIX */
+  html,
+  body {
+    background-color: hsl(210, 60%, 6%) !important;
+  }
+
+  /* Fluid transition — uses cheap GPU composites (opacity + translate) */
+  @keyframes pageFadeOut {
+    from {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+  }
+
+  @keyframes pageFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  ::view-transition-group(root) {
+    animation-duration: 400ms;
+    animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+    background-color: hsl(210, 60%, 6%);
+  }
+
+  ::view-transition-old(root) {
+    animation: pageFadeOut 250ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  }
+
+  ::view-transition-new(root) {
+    animation: pageFadeIn 400ms cubic-bezier(0.23, 1, 0.32, 1) both;
+  }
+
+  ::view-transition-image-pair(root) {
+    isolation: auto;
+  }
+
+  /* Safety: ensure content always visible */
+  main,
+  section,
+  header,
+  footer {
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+
+  .fade-in,
+  [data-hero-badge],
+  [data-hero-heading],
+  [data-hero-anim] {
+    visibility: visible !important;
+  }
+
+  body.transition-complete main {
+    transform: none !important;
+  }
+
+  /* OPTIMIZATION: Bypassing animation on Potato/Battery-Saver mode */
+  html[data-perf-tier="low"] ::view-transition-group(root),
+  html[data-perf-tier="battery_saver"] ::view-transition-group(root),
+  html[data-perf-tier="low"] ::view-transition-old(root),
+  html[data-perf-tier="battery_saver"] ::view-transition-old(root),
+  html[data-perf-tier="low"] ::view-transition-new(root),
+  html[data-perf-tier="battery_saver"] ::view-transition-new(root) {
+    animation: none !important;
+  }
+</style>
+
+<script is:inline>
+  (function () {
+    "use strict";
+
+    function forceContentVisibility() {
+      var main = document.querySelector("main");
+      if (main) {
+        main.style.opacity = "1";
+        main.style.visibility = "visible";
+        main.style.transform = "none";
+      }
+      document.body.classList.add("transition-complete");
+    }
+
+    // =============================================
+    // GLOBAL CLEANUP TRIGGER — astro:before-swap
+    // Explicitly calls all CloudSI singleton cleanups
+    // before DOM swap to prevent zombie listeners & VRAM leaks.
+    // NO { once: true } — this listener persists across navigations.
+    // =============================================
+    document.addEventListener("astro:before-swap", function () {
+      // Cleanup Water WebGL
+      if (
+        window.CloudSI_Water &&
+        typeof window.CloudSI_Water.cleanup === "function"
+      ) {
+        try {
+          window.CloudSI_Water.cleanup();
+        } catch (e) {
+          console.warn("[Cloudsi] PageTransition: Water cleanup error:", e);
+        }
+      }
+
+      // Cleanup Cloud WebGL
+      if (
+        window.CloudSI_Cloud &&
+        typeof window.CloudSI_Cloud.cleanup === "function"
+      ) {
+        try {
+          window.CloudSI_Cloud.cleanup();
+        } catch (e) {
+          console.warn("[Cloudsi] PageTransition: Cloud cleanup error:", e);
+        }
+      }
+    });
+
+    // After DOM swap, force visibility once
+    document.addEventListener("astro:after-swap", function () {
+      requestAnimationFrame(forceContentVisibility);
+    });
+
+    // Initial load
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", forceContentVisibility);
+    } else {
+      forceContentVisibility();
+    }
+  })();
+</script>

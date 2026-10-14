@@ -1,0 +1,601 @@
+/**
+ * global.css — FIXED v2 (FADE-IN GUARANTEE)
+ * 
+ * Global styles untuk Cloudsi Connect
+ * Berisi: CSS Reset modern, @font-face import, base styles, utility classes, accessibility
+ * Dependencies: tokens.css (CSS Custom Properties)
+ * 
+ * MASALAH YANG DISELESAIKAN:
+ * 1. Fade-in stuck di opacity 0 → Fallback animation setelah 5s
+ * 2. Content invisible setelah navigasi → Force visibility + monitor
+ * 3. CSS animation tidak trigger → Dual-layer animation guarantee
+ * 4. Mobile blur cause issue → Mobile blur optimization
+ * 5. Reduced motion respected → Instant visibility
+ */
+
+/* ============================================
+   DESIGN TOKENS IMPORT
+   ============================================ */
+@import './tokens.css';
+
+/* Google Fonts sudah dihandle secara asynchronous via preload di BaseLayout.astro untuk performa terbaik */
+
+/* ============================================
+   TAILWIND DIRECTIVES
+   ============================================ */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================
+   MODERN CSS RESET
+   Pendekatan modern — tanpa Normalize.css
+   ============================================ */
+@layer base {
+
+  /* Box sizing universal */
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  /* Hapus default margin & padding */
+  * {
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Smooth scroll di root (akan di-override oleh Lenis) */
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    -moz-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    hanging-punctuation: first last;
+    background-color: var(--color-sky-deep);
+  }
+
+  /* Body base styles */
+  body {
+    min-height: 100dvh;
+    background-color: var(--color-sky-deep);
+    color: hsla(0, 0%, 100%, 0.87);
+    font-family: var(--font-body);
+    font-size: var(--font-size-body);
+    line-height: 1.7;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Heading styles */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-display);
+    line-height: 1.15;
+    text-wrap: balance;
+    overflow-wrap: break-word;
+  }
+
+  h1 {
+    font-size: var(--font-size-h1);
+  }
+
+  h2 {
+    font-size: var(--font-size-h2);
+  }
+
+  /* Media reset */
+  img,
+  picture,
+  video,
+  canvas,
+  svg {
+    display: block;
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Form reset */
+  input,
+  button,
+  textarea,
+  select {
+    font: inherit;
+    color: inherit;
+  }
+
+  /* Link reset */
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  /* List reset */
+  ul,
+  ol {
+    list-style: none;
+  }
+
+  /* Table reset */
+  table {
+    border-collapse: collapse;
+    border-spacing: 0;
+  }
+
+  /* Paragraph wrap */
+  p {
+    text-wrap: pretty;
+    overflow-wrap: break-word;
+  }
+
+  /* Focus outline — accessible, on-theme */
+  :focus-visible {
+    outline: 2px solid var(--color-water-light);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  /* Selection color */
+  ::selection {
+    background-color: hsla(195, 70%, 35%, 0.4);
+    color: white;
+  }
+
+  /* Scrollbar styling (WebKit) */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--color-sky-deep);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-sky-surface);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-water-surface);
+  }
+}
+
+/* ============================================
+   VIEW TRANSITION FIX (Mencegah Layar Putih)
+   ============================================ */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.3s;
+}
+
+::view-transition-group(root) {
+  background-color: var(--color-sky-deep);
+}
+
+/* ============================================
+   FALLBACK FADE-IN ANIMATIONS
+   ============================================ */
+
+@keyframes fallback-fade-in-show {
+  0% {
+    opacity: 0;
+    transform: translateY(24px);
+    visibility: visible;
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    visibility: visible;
+  }
+}
+
+@keyframes fallback-fade-in-show-delayed {
+  0% {
+    opacity: 0;
+    transform: translateY(24px);
+    visibility: visible;
+  }
+
+  100% {
+    opacity: 1 !important;
+    transform: translateY(0) !important;
+    visibility: visible !important;
+  }
+}
+
+@keyframes guarantee-visibility {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+@layer components {
+
+  /* Glass Card — liquid glassmorphism utama */
+  .glass {
+    background: var(--glass-bg);
+    backdrop-filter: var(--blur-glass);
+    -webkit-backdrop-filter: var(--blur-glass);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow-glass);
+    border-radius: 16px;
+    transition: all var(--duration-normal) var(--ease-glass);
+    position: relative;
+  }
+
+  .glass:hover {
+    background: var(--glass-bg-hover);
+    border-color: hsla(190, 65%, 55%, 0.25);
+    box-shadow:
+      var(--shadow-glass-hover),
+      0 0 20px hsla(190, 65%, 55%, 0.08);
+  }
+
+  /* Glass variant — heavier blur */
+  .glass-heavy {
+    background: var(--glass-bg);
+    backdrop-filter: var(--blur-glass-heavy);
+    -webkit-backdrop-filter: var(--blur-glass-heavy);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow-glass);
+    border-radius: 16px;
+    transition: all var(--duration-normal) var(--ease-glass);
+  }
+
+  /* Container max-width */
+  .container-main {
+    max-width: var(--container-max);
+    margin-inline: auto;
+    padding-inline: var(--gutter);
+  }
+
+  /* Section spacing */
+  .section-pad {
+    padding-block: var(--section-padding);
+  }
+
+  /* Text gradient — water shimmer */
+  .text-gradient-water {
+    background: linear-gradient(135deg,
+        var(--color-water-light) 0%,
+        var(--color-water-surface) 50%,
+        var(--color-accent-gold) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* Gold accent text */
+  .text-accent {
+    color: var(--color-accent-gold);
+  }
+
+
+  @keyframes heroFadeUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .hero-fade-up {
+    opacity: 0;
+    animation: heroFadeUp 0.8s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+    animation-delay: 50ms;
+    will-change: transform, opacity;
+  }
+
+  /* ============================================
+     FADE-IN ANIMATION — GUARANTEED VISIBILITY
+     ============================================ */
+
+  /* BASE: Initial fade-in state */
+  .fade-in {
+    /* Prevent initial hidden state on fast navigations */
+    transition: opacity var(--duration-slow) var(--ease-water),
+      transform var(--duration-slow) var(--ease-water);
+    visibility: visible;
+  }
+
+  /* STATE: Visible state */
+  .fade-in.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+    visibility: visible;
+    animation: none;
+  }
+
+  /* ============================================
+     FORCED VISIBILITY BACKUP
+     Double-layer safety for edge cases
+     ============================================ */
+
+  /* Extra backup: Force at 8 seconds (second chance) */
+  .fade-in:not(.is-visible) {
+    animation-name: fallback-fade-in-show-delayed;
+    animation-delay: 8s;
+    animation-duration: 0.6s;
+    animation-fill-mode: forwards;
+  }
+
+  /* Ensure all fade-in are visible by default if nothing else works */
+  .fade-in[data-force-visible] {
+    opacity: 1 !important;
+    transform: translateY(0) !important;
+    visibility: visible !important;
+  }
+
+  /* ============================================
+     SECTION VISIBILITY GUARANTEE
+     Ensure all major sections visible
+     ============================================ */
+
+  section {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  header,
+  footer,
+  main {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  /* Hero section guarantee */
+  .hero-section {
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+
+  .hero-badge,
+  .hero-heading,
+  .hero-subheading,
+  .hero-desc,
+  .hero-cta {
+    visibility: visible;
+  }
+
+  /* Stats section guarantee */
+  .stats-section {
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+
+  .stat-card {
+    visibility: visible;
+  }
+
+  /* About section guarantee */
+  .about-section {
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+
+  /* Gallery section guarantee */
+  .gallery-cta-section {
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+
+  .gallery-cta-link {
+    visibility: visible;
+  }
+
+  /* Member preview guarantee */
+  .member-preview-container {
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+
+  .member-preview-card {
+    visibility: visible;
+  }
+
+  /* Data attribute selectors for JS-controlled elements */
+  [data-hero-badge],
+  [data-hero-heading],
+  [data-hero-anim],
+  [data-tentang-anim],
+  [data-event-card],
+  [data-member-item] {
+    visibility: visible;
+  }
+}
+
+/* ============================================
+   @supports — Backdrop-filter fallback
+   Browser yang tidak support backdrop-filter
+   mendapat solid background sebagai pengganti
+   ============================================ */
+@supports not (backdrop-filter: blur(1px)) {
+
+  .glass,
+  .glass-heavy {
+    background: hsla(200, 50%, 12%, 0.85);
+  }
+}
+
+/* ============================================
+   MOBILE OPTIMIZATION
+   Optimize animations & effects for mobile
+   ============================================ */
+@media (max-width: 768px) {
+
+
+
+  :root {
+    --blur-glass: blur(4px) !important;
+    --blur-glass-heavy: blur(6px) !important;
+  }
+
+
+  /* Shorter animation duration on mobile */
+  .fade-in {
+    transition: opacity calc(var(--duration-slow) * 0.7) var(--ease-water),
+      transform calc(var(--duration-slow) * 0.7) var(--ease-water);
+    animation-delay: 3s;
+    /* Show faster on mobile */
+  }
+
+  /* Reduce fallback delay on mobile (3s instead of 5s) */
+  .fade-in:not(.is-visible) {
+    animation-delay: 3s;
+  }
+
+  /* Absolutely guarantee visibility on mobile after 6 seconds */
+  .fade-in {
+    animation-name: fallback-fade-in-show;
+    animation-duration: 0.6s;
+    animation-delay: 6s;
+    animation-fill-mode: forwards;
+  }
+}
+
+/* Optimize laptop kentang */
+html[data-perf-tier="low"] *,
+html[data-perf-tier="battery_saver"] * {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html[data-perf-tier="low"] .glass,
+html[data-perf-tier="battery_saver"] .glass,
+html[data-perf-tier="low"] .glass-heavy,
+html[data-perf-tier="battery_saver"] .glass-heavy {
+  box-shadow: none !important;
+  border: 1px solid hsla(190, 65%, 55%, 0.15) !important;
+  background: hsla(200, 50%, 12%, 0.9) !important;
+}
+
+html[data-perf-tier="low"] *:hover,
+html[data-perf-tier="battery_saver"] *:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* ============================================
+   REDUCED MOTION
+   Respect user accessibility preferences
+   Disable ALL animations and transitions
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Instant visibility for fade-in elements */
+  .fade-in {
+    opacity: 1 !important;
+    transform: none !important;
+    visibility: visible !important;
+    animation: none !important;
+  }
+
+  .fade-in.is-visible {
+    opacity: 1 !important;
+    transform: none !important;
+    visibility: visible !important;
+    animation: none !important;
+  }
+
+  /* Disable all transitions */
+  .glass,
+  .glass-heavy {
+    transition: none !important;
+  }
+
+  /* No animations on any element */
+  section,
+  header,
+  footer,
+  main {
+    animation: none !important;
+  }
+
+  /* Data attributes also instant */
+  [data-hero-badge],
+  [data-hero-heading],
+  [data-hero-anim],
+  [data-tentang-anim],
+  [data-event-card],
+  [data-member-item] {
+    opacity: 1 !important;
+    transform: none !important;
+    visibility: visible !important;
+    animation: none !important;
+  }
+}
+
+/* ============================================
+   CRITICAL FIX: Ensure opacity never gets stuck
+   ============================================ */
+
+/* Force opacity 1 for all content by default */
+main,
+section,
+header,
+footer {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Any element with fade-in should eventually be visible */
+.fade-in {
+  will-change: opacity, transform;
+}
+
+.fade-in.is-visible {
+  will-change: auto;
+}
+
+.footer-bottom {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 2rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.footer-bottom p {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.4);
+  margin: 0;
+}
+
+.heart {
+  color: #ff4d4d;
+  /* Merah hati */
+  display: inline-block;
+  margin: 0 4px;
+}

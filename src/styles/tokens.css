@@ -1,0 +1,70 @@
+/**
+ * tokens.css
+ * Sistem desain Cloudsi Connect — Design Tokens
+ * Semua CSS Custom Properties untuk color, glass, typography, spacing, animation, shadow
+ * Dependencies: Tidak ada (root-level tokens)
+ */
+
+:root {
+  /* ============================================
+     COLOR SYSTEM
+     Palette langit dan air — dari deep sky ke water light
+     ============================================ */
+  --color-sky-deep      : hsl(210, 60%, 6%);
+  --color-sky-mid       : hsl(205, 55%, 14%);
+  --color-sky-surface   : hsl(200, 50%, 22%);
+  --color-water-surface : hsl(195, 70%, 35%);
+  --color-water-light   : hsl(190, 65%, 55%);
+  --color-accent-gold   : hsl(45, 85%, 65%);
+
+  /* ============================================
+     GLASS SYSTEM
+     Liquid glassmorphism — transparan, blur, border halus
+     ============================================ */
+  --glass-bg            : hsla(200, 60%, 80%, 0.06);
+  --glass-bg-hover      : hsla(200, 60%, 80%, 0.10);
+  --glass-border        : hsla(200, 80%, 85%, 0.12);
+  --glass-border-hover  : hsla(200, 80%, 90%, 0.22);
+  --blur-glass          : blur(18px);
+  --blur-glass-heavy    : blur(28px);
+
+  /* ============================================
+     TYPOGRAPHY
+     Display: Cormorant Garamond (serif, elegan)
+     Body: Plus Jakarta Sans (modern, readable)
+     ============================================ */
+  --font-display        : 'Cormorant Garamond', Georgia, serif;
+  --font-body           : 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-size-hero      : clamp(4rem, 9vw, 8rem);
+  --font-size-h1        : clamp(2.5rem, 6vw, 4.5rem);
+  --font-size-h2        : clamp(1.8rem, 4vw, 3rem);
+  --font-size-body      : clamp(1.05rem, 1.8vw, 1.25rem); /* Sekitar 16.8px - 20px */
+
+  /* ============================================
+     SPACING
+     Responsive spacing system with clamp()
+     ============================================ */
+  --section-padding     : clamp(4rem, 10vw, 10rem);
+  --container-max       : 1400px;
+  --gutter              : clamp(1rem, 4vw, 2rem);
+
+  /* ============================================
+     ANIMATION
+     Easing & duration tokens untuk glass & water effects
+     ============================================ */
+  --ease-glass          : cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-water          : cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast       : 200ms;
+  --duration-normal     : 500ms;
+  --duration-slow       : 900ms;
+  --duration-ripple     : 1800ms;
+
+  /* ============================================
+     SHADOW
+     Layered glass shadows — depth + inset highlight
+     ============================================ */
+  --shadow-glass        : 0 8px 32px hsla(210, 60%, 4%, 0.4),
+                          inset 0 1px 0 hsla(0, 0%, 100%, 0.08);
+  --shadow-glass-hover  : 0 16px 48px hsla(210, 60%, 4%, 0.6),
+                          inset 0 1px 0 hsla(0, 0%, 100%, 0.12);
+}

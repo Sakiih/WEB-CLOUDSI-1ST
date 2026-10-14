@@ -1,0 +1,85 @@
+---
+/**
+ * Members.astro
+ * Section anggota — grid kartu profil
+ * Dependencies: MemberCard.astro, types/index.ts
+ */
+
+import MemberCard from '../ui/MemberCard.astro';
+import type { Member } from '../../types/index';
+
+interface Props {
+  members?: Member[];
+}
+
+const { members = [] } = Astro.props;
+---
+
+<section class="members section-pad" id="members-section" aria-label="Anggota">
+  <div class="container-main">
+    <div class="members-header fade-in">
+      <p class="section-eyebrow">Anggota</p>
+      <h2 class="section-title">
+        Wajah-wajah <span class="text-gradient-water">inspiratif</span>
+      </h2>
+      <p class="members-subtitle">
+        Kenali setiap anggota yang menjadi bagian dari keluarga besar Cloudsi.
+      </p>
+    </div>
+
+    {members.length > 0 ? (
+      <div class="members-grid fade-in">
+        {members.map((member) => (
+          <MemberCard member={member} />
+        ))}
+      </div>
+    ) : (
+      <div class="members-empty fade-in">
+        <p>Data anggota akan segera ditampilkan.</p>
+      </div>
+    )}
+  </div>
+</section>
+
+<style>
+  .members-header {
+    max-width: 600px;
+    margin-bottom: 3rem;
+  }
+
+  .section-eyebrow {
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--color-accent-gold);
+    margin-bottom: 1rem;
+  }
+
+  .section-title {
+    font-family: var(--font-display);
+    font-size: var(--font-size-h1);
+    font-weight: 300;
+    color: hsla(0, 0%, 100%, 0.95);
+    margin-bottom: 0.75rem;
+  }
+
+  .members-subtitle {
+    color: hsla(0, 0%, 100%, 0.5);
+    font-size: var(--font-size-body);
+  }
+
+  .members-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .members-empty {
+    text-align: center;
+    color: hsla(0, 0%, 100%, 0.4);
+    padding: 4rem 2rem;
+    font-style: italic;
+  }
+</style>

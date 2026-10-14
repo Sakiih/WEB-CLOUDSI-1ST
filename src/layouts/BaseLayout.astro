@@ -1,0 +1,606 @@
+---
+/**
+ * BaseLayout.astro
+ * Layout utama Cloudsi Connect — head, meta, fonts, canvas, slot
+ * Props: title (wajib), description, ogImage
+ * Dependencies: tokens.css, global.css, WaterRipple.astro, ViewTransitions
+ */
+
+import CloudBackground from "../components/canvas/CloudBackground.astro";
+import WaterRipple from "../components/canvas/WaterRipple.astro";
+import Preloader from "../components/ui/Preloader.astro";
+import Header from "../components/layout/Header.astro";
+import "../styles/global.css";
+
+interface Props {
+  title?: string;
+  description?: string;
+  ogImage?: string;
+  keywords?: string;
+}
+
+const {
+  title = "CloudSI | Sistem Informasi Untan",
+  description = "Website Resmi CloudSI - Wadah solidaritas dan profil mahasiswa Sistem Informasi Universitas Tanjungpura (UNTAN) Angkatan 2025. Kenali perjalanan dan anggota kami di sini.",
+  ogImage = "/logo-angkatan-25.webp?v=update",
+  keywords = "CloudSI, Angkatan SI, Website Angkatan, Profil Mahasiswa, Cloudsi, UNTAN, Universitas Tanjungpura, Sistem Informasi, 2025, 2026",
+} = Astro.props;
+
+const canonicalUrl = new URL(
+  Astro.url.pathname,
+  Astro.site ?? "https://cloudsi.vercel.app",
+);
+const fullTitle = title;
+---
+
+<!doctype html>
+<html lang="id" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="hsl(210, 60%, 6%)" />
+    <meta name="color-scheme" content="dark" />
+
+    <meta
+      name="google-site-verification"
+      content="jebM0Lyzp4SddAgW4yCHHoaCImLBF-XReSOQlo5zKaY"
+    />
+    <meta
+      name="google-site-verification"
+      content="JMSyFQjLOBKnBIDgMQaMsqWXPLaI0Fh1VSaCqlejsBs"
+    />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <meta name="keywords" content={keywords} />
+    <link rel="canonical" href={canonicalUrl.href} />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta
+      property="og:image"
+      content={new URL(ogImage, Astro.site ?? "https://cloudsi.vercel.app")}
+    />
+    <meta property="og:url" content={canonicalUrl.href} />
+    <meta property="og:site_name" content="Cloudsi" />
+    <meta property="og:locale" content="id_ID" />
+
+    <script is:inline>
+      (function () {
+        "use strict";
+
+        var cached = sessionStorage.getItem("cloudsi_perf_tier");
+        if (cached) {
+          applyTier(cached);
+          return;
+        }
+
+        var score = 0;
+
+        var memory = navigator.deviceMemory;
+        if (memory) {
+          if (memory >= 8) score += 3;
+          else if (memory >= 4) score += 2;
+          else if (memory >= 2) score += 1;
+        } else {
+          score += 2;
+        }
+
+        var cores = navigator.hardwareConcurrency;
+        if (cores) {
+          if (cores >= 8) score += 3;
+          else if (cores >= 4) score += 2;
+          else if (cores >= 2) score += 1;
+        } else {
+          score += 1;
+        }
+
+        var screenWidth = window.screen
+          ? window.screen.width
+          : window.innerWidth;
+        var isMobile = screenWidth < 768 || "ontouchstart" in window;
+        if (isMobile) score -= 1;
+
+        var isDesktopModeOnMobile =
+          window.screen &&
+          window.screen.width < 900 &&
+          navigator.maxTouchPoints > 1 &&
+          !(screenWidth < 768);
+        if (isDesktopModeOnMobile) score -= 3;
+
+        var dpr = window.devicePixelRatio || 1;
+        if (isMobile && dpr >= 3) score -= 1;
+
+        try {
+          var tc = document.createElement("canvas");
+          var tgl = tc.getContext("webgl");
+          if (tgl) {
+            var di = tgl.getExtension("WEBGL_debug_renderer_info");
+            if (di) {
+              var r = tgl.getParameter(di.UNMASKED_RENDERER_WEBGL);
+              if (r && /swiftshader|llvmpipe|mesa|intel.*uhd/i.test(r))
+                score -= 1;
+              if (r && /nvidia|radeon|geforce|rtx|gtx/i.test(r)) score += 1;
+            }
+          }
+        } catch (e) {}
+
+        var tier;
+        if (score >= 6) tier = "ULTRA";
+        else if (score >= 4) tier = "NORMAL";
+        else if (score >= 2) tier = "LOW";
+        else tier = "BATTERY_SAVER";
+
+        sessionStorage.setItem("cloudsi_perf_tier", tier);
+        applyTier(tier);
+
+        function applyTier(t) {
+          var root = document.documentElement;
+          root.dataset.perfTier = t.toLowerCase();
+
+          if (t === "ULTRA") {
+            root.style.setProperty("--blur-glass", "blur(28px)");
+            root.style.setProperty("--blur-glass-heavy", "blur(28px)");
+          } else if (t === "NORMAL") {
+            root.style.setProperty("--blur-glass", "blur(12px)");
+            root.style.setProperty("--blur-glass-heavy", "blur(18px)");
+          } else if (t === "LOW") {
+            root.style.setProperty("--blur-glass", "blur(4px)");
+            root.style.setProperty("--blur-glass-heavy", "blur(8px)");
+          } else {
+            root.style.setProperty("--blur-glass", "blur(0px)");
+            root.style.setProperty("--blur-glass-heavy", "blur(0px)");
+          }
+        }
+      })();
+    </script>
+
+    <script is:inline>
+      (function () {
+        if (typeof navigator === "undefined" || !("getBattery" in navigator))
+          return;
+
+        navigator
+          .getBattery()
+          .then(function (battery) {
+            function checkBattery() {
+              if (battery.level < 0.2 && !battery.charging) {
+                console.warn(
+                  "[Cloudsi] Battery below 20% — activating BATTERY_SAVER mode.",
+                );
+
+                sessionStorage.setItem("cloudsi_perf_tier", "BATTERY_SAVER");
+
+                var root = document.documentElement;
+                root.dataset.perfTier = "battery_saver";
+                root.style.setProperty("--blur-glass", "blur(0px)");
+                root.style.setProperty("--blur-glass-heavy", "blur(0px)");
+                root.style.setProperty("--perf-transition-duration", "0ms");
+                root.style.setProperty("--perf-animation-enabled", "0");
+
+                if (
+                  window.CloudSI_Water &&
+                  typeof window.CloudSI_Water.cleanup === "function"
+                ) {
+                  try {
+                    window.CloudSI_Water.cleanup();
+                  } catch (e) {}
+                }
+                if (
+                  window.CloudSI_Cloud &&
+                  typeof window.CloudSI_Cloud.cleanup === "function"
+                ) {
+                  try {
+                    window.CloudSI_Cloud.cleanup();
+                  } catch (e) {}
+                }
+                var canvases = document.querySelectorAll(
+                  "#water-canvas, #cloud-canvas",
+                );
+                for (var i = 0; i < canvases.length; i++) {
+                  canvases[i].style.display = "none";
+                }
+                var wf = document.getElementById("water-fallback");
+                if (wf) wf.style.display = "block";
+                var cf = document.getElementById("cloud-fallback");
+                if (cf) cf.style.display = "block";
+              }
+            }
+
+            checkBattery();
+            battery.addEventListener("levelchange", checkBattery);
+            battery.addEventListener("chargingchange", checkBattery);
+          })
+          .catch(function () {});
+      })();
+    </script>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "ogl": "https://unpkg.com/ogl"
+        }
+      }
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap"
+    />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap"
+      media="print"
+      onload="this.media='all'"
+    />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap"
+      />
+    </noscript>
+
+    <link rel="preload" as="image" href="/logo-angkatan-25.webp?v=update" />
+
+    <link rel="icon" type="image/webp" href="/logo-angkatan-25.webp?v=update" />
+    <link rel="apple-touch-icon" href="/logo-angkatan-25.webp?v=update" />
+  </head>
+
+  <body>
+    <Preloader />
+
+    <CloudBackground />
+
+    <Header />
+
+    <div
+      class="main-content-wrapper"
+      style="position: relative; z-index: 1; isolation: isolate;"
+    >
+      <slot />
+    </div>
+
+    <script is:inline>
+      (function () {
+        function initLenis() {
+          var prefersReduced = window.matchMedia(
+            "(prefers-reduced-motion: reduce)",
+          ).matches;
+          var isMobile = window.innerWidth < 768;
+          if (prefersReduced || isMobile) return;
+
+          var tier = sessionStorage.getItem("cloudsi_perf_tier") || "NORMAL";
+          var isMobileHP =
+            /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+              navigator.userAgent,
+            ) || window.innerWidth <= 768;
+
+          if (isMobileHP || tier === "LOW" || tier === "BATTERY_SAVER") {
+            return;
+          }
+
+          function importWithTimeout(importFn, ms) {
+            ms = ms || 5000;
+            return Promise.race([
+              importFn(),
+              new Promise(function (_, reject) {
+                setTimeout(function () {
+                  reject(new Error("Import timeout"));
+                }, ms);
+              }),
+            ]);
+          }
+
+          Promise.all([
+            importWithTimeout(function () {
+              return import("https://cdn.jsdelivr.net/npm/lenis@1.3.21/+esm");
+            }),
+            importWithTimeout(function () {
+              return import("https://cdn.jsdelivr.net/npm/gsap@3.12.5/+esm");
+            }),
+            importWithTimeout(function () {
+              return import("https://cdn.jsdelivr.net/npm/gsap@3.12.5/ScrollTrigger.js/+esm");
+            }),
+          ])
+            .then(function (modules) {
+              var Lenis = modules[0].default;
+              var gsap = modules[1].gsap || modules[1].default;
+              var ScrollTrigger =
+                modules[2].ScrollTrigger || modules[2].default;
+
+              gsap.registerPlugin(ScrollTrigger);
+
+              var duration = tier === "ULTRA" ? 1.4 : 1.1;
+              var wheelMult = tier === "ULTRA" ? 1.2 : 1.0;
+
+              var lenis = new Lenis({
+                duration: duration,
+                easing: function (t) {
+                  return Math.min(1, 1.001 - Math.pow(2, -10 * t));
+                },
+                wheelMultiplier: wheelMult,
+                touchMultiplier: 1.5,
+              });
+
+              lenis.on("scroll", ScrollTrigger.update);
+
+              var lenisActive = false;
+              var lenisIdleTimer = null;
+              var LENIS_IDLE_MS = 150;
+
+              function onLenisScroll() {
+                lenisActive = true;
+                if (lenisIdleTimer) clearTimeout(lenisIdleTimer);
+                lenisIdleTimer = setTimeout(function () {
+                  lenisActive = false;
+                }, LENIS_IDLE_MS);
+              }
+
+              lenis.on("scroll", onLenisScroll);
+              window.addEventListener(
+                "scroll",
+                function () {
+                  onLenisScroll();
+                },
+                { passive: true, once: true },
+              );
+              window.addEventListener(
+                "wheel",
+                function () {
+                  onLenisScroll();
+                },
+                { passive: true },
+              );
+              window.addEventListener(
+                "touchstart",
+                function () {
+                  onLenisScroll();
+                },
+                { passive: true },
+              );
+
+              gsap.ticker.add(function (time) {
+                if (lenisActive) {
+                  lenis.raf(time * 1000);
+                }
+              });
+              gsap.ticker.lagSmoothing(0);
+
+              var cleanup = function () {
+                if (lenisIdleTimer) clearTimeout(lenisIdleTimer);
+                lenis.destroy();
+                ScrollTrigger.getAll().forEach(function (t) {
+                  t.kill();
+                });
+                document.removeEventListener("astro:before-swap", cleanup);
+              };
+              document.addEventListener("astro:before-swap", cleanup);
+            })
+            .catch(function (err) {
+              console.warn("[Cloudsi] Lenis/GSAP init gagal:", err);
+            });
+        }
+
+        function scheduleLenis() {
+          if ("requestIdleCallback" in window) {
+            requestIdleCallback(initLenis, { timeout: 1000 });
+          } else {
+            setTimeout(initLenis, 300);
+          }
+        }
+
+        document.addEventListener("DOMContentLoaded", scheduleLenis);
+        document.addEventListener("astro:after-swap", scheduleLenis);
+      })();
+    </script>
+
+    <script is:inline>
+      (function () {
+        function portalDrawer() {
+          var drawer = document.getElementById("mobile-drawer");
+          var backdrop = document.getElementById("mobile-backdrop");
+          if (backdrop) document.body.appendChild(backdrop);
+          if (drawer) document.body.appendChild(drawer);
+        }
+
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", portalDrawer);
+        } else {
+          portalDrawer();
+        }
+      })();
+    </script>
+
+    <script>
+      if ("scrollRestoration" in history) {
+        history.scrollRestoration = "manual";
+      }
+
+      window.scrollTo(0, 0);
+    </script>
+    <script is:inline>
+      (function () {
+        function initFadeInObserver() {
+          var fadeEls = document.querySelectorAll(".fade-in");
+          if (!fadeEls.length) return;
+
+          var tier = sessionStorage.getItem("cloudsi_perf_tier") || "NORMAL";
+          if (tier === "BATTERY_SAVER") {
+            for (var i = 0; i < fadeEls.length; i++) {
+              fadeEls[i].classList.add("is-visible");
+              fadeEls[i].style.opacity = "1";
+              fadeEls[i].style.transform = "none";
+            }
+            return;
+          }
+
+          var observer = new IntersectionObserver(
+            function (entries) {
+              for (var j = 0; j < entries.length; j++) {
+                if (entries[j].isIntersecting) {
+                  entries[j].target.classList.add("is-visible");
+                  observer.unobserve(entries[j].target);
+                }
+              }
+            },
+            { threshold: 0.1, rootMargin: "0px 0px -40px 0px" },
+          );
+
+          for (var k = 0; k < fadeEls.length; k++) {
+            observer.observe(fadeEls[k]);
+          }
+        }
+
+        document.addEventListener("DOMContentLoaded", initFadeInObserver);
+        document.addEventListener("astro:after-swap", initFadeInObserver);
+      })();
+    </script>
+
+    <script is:inline>
+      setTimeout(function () {
+        var selectors = [
+          "[data-hero-badge]",
+          "[data-hero-heading]",
+          "[data-hero-anim]",
+          ".hero-badge",
+          ".hero-heading",
+          ".hero-subheading",
+          ".hero-desc",
+          ".hero-cta",
+          ".member-preview-card",
+          ".tentang-title",
+          ".tentang-sub",
+          "[data-tentang-anim]",
+          "[data-event-card]",
+          ".stack-card",
+          ".photo-frame",
+          "[data-stat-target]",
+          ".gallery-cta-link",
+          ".fade-in",
+          ".stats-section",
+          ".about-section",
+          ".gallery-cta-section",
+        ];
+
+        var allEls = document.querySelectorAll(selectors.join(","));
+        // TWO-PASS: Read all, then write all (avoid forced sync reflow)
+        var toFix = [];
+        for (var i = 0; i < allEls.length; i++) {
+          var el = allEls[i];
+          var op = window.getComputedStyle(el).opacity;
+          if (op === "0" || parseFloat(op) < 0.1) {
+            toFix.push(el);
+          }
+        }
+        // Write pass
+        for (var j = 0; j < toFix.length; j++) {
+          toFix[j].style.opacity = "1";
+          toFix[j].style.transform = "none";
+          toFix[j].style.visibility = "visible";
+          if (toFix[j].classList.contains("fade-in"))
+            toFix[j].classList.add("is-visible");
+        }
+        if (toFix.length > 0) {
+          console.warn(
+            "[Cloudsi] Safety net: showed " +
+              toFix.length +
+              " hidden elements after 3s",
+          );
+        }
+      }, 3000);
+    </script>
+
+    <script is:inline>
+      (function () {
+        document.addEventListener("astro:after-swap", function () {
+          setTimeout(function () {
+            var selectors = [
+              ".fade-in",
+              "[data-hero-badge]",
+              "[data-hero-heading]",
+              "[data-hero-anim]",
+              "[data-tentang-anim]",
+              "[data-event-card]",
+              ".gallery-cta-link",
+              ".member-preview-card",
+              ".stack-card",
+              ".photo-frame",
+              "[data-stat-target]",
+            ];
+            var allEls = document.querySelectorAll(selectors.join(","));
+            var toFix = [];
+            for (var i = 0; i < allEls.length; i++) {
+              var el = allEls[i];
+              var op = window.getComputedStyle(el).opacity;
+              if (op === "0" || parseFloat(op) < 0.1) {
+                toFix.push(el);
+              }
+            }
+            for (var j = 0; j < toFix.length; j++) {
+              toFix[j].style.opacity = "1";
+              toFix[j].style.transform = "none";
+              toFix[j].style.visibility = "visible";
+              if (toFix[j].classList.contains("fade-in"))
+                toFix[j].classList.add("is-visible");
+            }
+          }, 1500);
+        });
+      })();
+    </script>
+
+    <style is:global>
+      .css-fade-up,
+      [data-tentang-anim],
+      .lyrics-panel,
+      .gallery-cta-section,
+      [data-member-card],
+      [data-event-card],
+      .member-preview-card,
+      .fade-in {
+        will-change: opacity, transform;
+      }
+
+      .delay-100 {
+        transition-delay: 100ms;
+      }
+      .delay-200 {
+        transition-delay: 200ms;
+      }
+      .delay-300 {
+        transition-delay: 300ms;
+      }
+      .delay-400 {
+        transition-delay: 400ms;
+      }
+    </style>
+    <script is:inline>
+      (function () {
+        function initGlobalFadeObserver() {
+          var selectors =
+            ".css-fade-up:not(.is-visible), [data-tentang-anim]:not(.is-visible), .lyrics-panel:not(.is-visible), .gallery-cta-section:not(.is-visible), [data-member-card]:not(.is-visible), [data-event-card]:not(.is-visible), .member-preview-card:not(.is-visible), .fade-in:not(.is-visible)";
+          var els = document.querySelectorAll(selectors);
+          if (!els.length) return;
+          var observer = new IntersectionObserver(
+            function (entries, obs) {
+              entries.forEach(function (entry) {
+                if (entry.isIntersecting) {
+                  entry.target.classList.add("is-visible");
+                  obs.unobserve(entry.target);
+                }
+              });
+            },
+            { threshold: 0.1, rootMargin: "0px 0px -50px 0px" },
+          );
+          els.forEach(function (el) {
+            observer.observe(el);
+          });
+        }
+        document.addEventListener("DOMContentLoaded", initGlobalFadeObserver);
+        document.addEventListener("astro:after-swap", initGlobalFadeObserver);
+      })();
+    </script>
+  </body>
+</html>

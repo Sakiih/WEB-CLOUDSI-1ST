@@ -1,0 +1,288 @@
+---
+/**
+ * acara.astro
+ * Halaman Acara — card grid events dari Supabase
+ * Dependencies: BaseLayout, Header, Footer, PageTransition, supabase.ts
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Footer from '../components/layout/Footer.astro';
+import PageTransition from '../components/layout/PageTransition.astro';
+import { getEvents } from '../lib/supabase';
+
+const events = await getEvents();
+
+function formatDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+}
+---
+
+<BaseLayout title="Acara | Cloudsi | Sistem Informasi Untan" description="Dalam satu ruang kami adalah keluarga besar Sistem Informasi Universitas Tanjungpura, penggerak teknologi masa depan.">
+  <PageTransition>
+    <main id="main-content">
+
+      <!-- Hero mini -->
+      <section class="acara-hero">
+        <div class="container-main acara-hero-inner hero-fade-up">
+          <h1 class="acara-title">Acara</h1>
+          <p class="acara-sub">Kegiatan terkini angkatan Cloudsi.</p>
+        </div>
+      </section>
+
+      <!-- Event Cards Grid -->
+      <section class="acara-grid-section section-pad">
+        <div class="container-main">
+          {events.length > 0 ? (
+            <div class="event-grid">
+              {events.map((event) => (
+                <article class="event-card glass" data-event-card>
+                  <!-- Cover Image -->
+                  <div class="event-cover-wrapper">
+                    <img
+                      src={event.cover_image}
+                      alt={event.title}
+                      class="event-cover"
+                      loading="lazy"
+                      decoding="async"
+                      width="600"
+                      height="338"
+                    />
+                  </div>
+
+                  <!-- Info Panel -->
+                  <div class="event-info">
+                    <time class="event-date" datetime={event.date}>
+                      {formatDate(event.date)}
+                    </time>
+                    <h2 class="event-title">{event.title}</h2>
+                    {event.description && (
+                      <p class="event-desc">{event.description}</p>
+                    )}
+                    <a
+                      href={`/galeri?event=${event.id}`}
+                      class="event-link"
+                    >
+                      Lihat Foto →
+                    </a>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div class="empty-state glass">
+              <div class="empty-icon-wrap" aria-hidden="true">
+                <img src="/icon-acara.webp" alt="Acara Empty" class="empty-vector" loading="lazy" width="200" height="200" />
+              </div>
+              <p class="empty-text">Acara akan segera ditambahkan.</p>
+              <p class="empty-sub">Pantau terus halaman ini untuk informasi kegiatan terbaru.</p>
+            </div>
+          )}
+        </div>
+      </section>
+
+    </main>
+  </PageTransition>
+  <Footer />
+</BaseLayout>
+
+<style>
+  /* Hero */
+  .acara-hero {
+    position: relative;
+    height: 50vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    text-align: center;
+  }
+
+  .acara-hero-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .acara-title {
+    font-family: var(--font-display);
+    font-size: var(--font-size-h1);
+    font-weight: 300;
+    letter-spacing: 0.1em;
+    color: white;
+    margin: 0;
+  }
+
+  .acara-sub {
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    color: hsla(0, 0%, 100%, 0.6);
+    margin-top: 0.75rem;
+    font-style: italic;
+  }
+
+  /* Grid: 3 (desktop), 2 (tablet), 1 (mobile) */
+  .event-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+  }
+
+  @media (max-width: 1024px) {
+    .event-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @media (max-width: 640px) {
+    .event-grid { grid-template-columns: 1fr; }
+  }
+
+  /* Event Card */
+  .event-card {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: transform var(--duration-normal) var(--ease-water),
+                box-shadow var(--duration-normal) var(--ease-glass);
+  }
+
+  .event-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-glass-hover);
+  }
+
+  /* Cover */
+  .event-cover-wrapper {
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+  }
+
+  .event-cover {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform var(--duration-normal) var(--ease-water);
+  }
+
+  .event-card:hover .event-cover {
+    transform: scale(1.04);
+  }
+
+  /* Info Panel */
+  .event-info {
+    padding: 1.25rem 1.5rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    flex: 1;
+  }
+
+  .event-date {
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    color: var(--color-accent-gold);
+    font-weight: 500;
+  }
+
+  .event-title {
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: white;
+    margin: 0;
+    line-height: 1.3;
+  }
+
+  .event-desc {
+    font-family: var(--font-body);
+    font-size: var(--font-size-body);
+    color: hsla(0, 0%, 100%, 0.6);
+    margin: 0;
+    line-height: 1.6;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .event-link {
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    color: var(--color-water-light);
+    font-weight: 500;
+    text-decoration: none;
+    margin-top: 0.5rem;
+    transition: color var(--duration-fast);
+    display: inline-block;
+  }
+
+  .event-link:hover {
+    color: white;
+  }
+
+  /* Empty State */
+  .empty-state {
+    padding: 4rem 2rem;
+    text-align: center;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+
+  .empty-icon-wrap {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 2rem;
+  }
+
+  .empty-vector {
+    width: 140px;
+    height: auto;
+    object-fit: contain;
+    border-radius: 28px; /* Sudut membulat estetik mencocokkan glassmorphism */
+    mix-blend-mode: screen;
+    filter: drop-shadow(0 0 20px rgba(56, 189, 248, 0.3));
+    animation: float 6s ease-in-out infinite;
+    animation-play-state: paused; /* Activated via IO */
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-15px); }
+  }
+
+  .empty-text {
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    color: hsla(0, 0%, 100%, 0.7);
+    margin: 0 0 0.5rem 0;
+  }
+
+  .empty-sub {
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    color: hsla(0, 0%, 100%, 0.4);
+    margin: 0;
+  }
+</style>
+
+<script is:inline>
+  (function() {
+
+
+    // IO pause/resume for float animation
+    function initFloatIO() {
+      var floatEls = document.querySelectorAll('.acara-grid-section .empty-vector');
+      if (!floatEls.length) return;
+      var obs = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          e.target.style.animationPlayState = e.isIntersecting ? 'running' : 'paused';
+        });
+      }, { threshold: 0 });
+      floatEls.forEach(function(el) { obs.observe(el); });
+    }
+    document.addEventListener('DOMContentLoaded', initFloatIO);
+    document.addEventListener('astro:after-swap', initFloatIO);
+  })();
+</script>

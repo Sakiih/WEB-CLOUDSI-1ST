@@ -1,0 +1,168 @@
+---
+/**
+ * index.astro
+ * Beranda yang mengassemble semua komponen secara berurutan.
+ */
+import BaseLayout from "../layouts/BaseLayout.astro";
+import Footer from "../components/layout/Footer.astro";
+import PageTransition from "../components/layout/PageTransition.astro";
+
+import Hero from "../components/sections/Hero.astro";
+import StatsSection from "../components/sections/StatsSection.astro";
+import MemberPreview from "../components/sections/MemberPreview.astro";
+import { getMembers } from "../lib/supabase";
+import { MEMBERS_DATA } from "../data/members-data";
+import type { Member } from "../types/index";
+
+const supabaseMembers = await getMembers();
+const members = supabaseMembers.length > 0 ? supabaseMembers : MEMBERS_DATA;
+
+// Feature 6 anggota (1 Ketua + 5 pertama yang bukan ketua)
+const ketua = members.find((m) => m.role === "Ketua");
+const rest = members.filter((m) => m.role !== "Ketua").slice(0, 5);
+const featuredMembers = [ketua, ...rest].filter((m): m is Member => Boolean(m));
+---
+
+<BaseLayout
+  title="Cloudsi | Sistem Informasi Untan"
+  description="Dalam satu ruang kami adalah keluarga besar Sistem Informasi Universitas Tanjungpura, penggerak teknologi masa depan."
+>
+  <PageTransition>
+    <main id="main-content">
+      <!-- 1. Hero -->
+      <Hero />
+
+      <!-- 2. Stats Section -->
+      <StatsSection />
+
+      <!-- 3. Member Preview -->
+      <MemberPreview members={featuredMembers} />
+
+      <!-- 4. Section CTA Galeri -->
+      <section class="gallery-cta-section">
+        <div class="container-main text-center">
+          <a href="/galeri" class="gallery-cta-link"
+            >Lihat Album Momen CloudSI &rarr;</a
+          >
+        </div>
+      </section>
+    </main>
+  </PageTransition>
+
+  <!-- 5. Footer -->
+  <Footer />
+</BaseLayout>
+
+<style>
+  .text-center {
+    text-align: center;
+  }
+
+  .gallery-cta-section {
+    position: relative;
+    z-index: 10;
+    padding: 3rem 0 6rem 0;
+  }
+
+  .gallery-cta-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    font-style: italic;
+    color: white;
+    text-decoration: none;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(100, 200, 255, 0.4);
+    transition:
+      color 0.3s ease,
+      border-color 0.3s ease,
+      transform 0.3s ease;
+    opacity: 1;
+    transform: translateY(0);
+    visibility: visible;
+  }
+
+  .gallery-cta-link:hover {
+    color: var(--color-water-light);
+    border-color: var(--color-water-light);
+    transform: translateX(5px);
+  }
+</style>
+
+<script is:inline>
+  (function () {
+    "use strict";
+
+    // =============================================
+    // STATE TRACKING
+    // =============================================
+    var gsapReady = false;
+    var scrollTriggerReady = false;
+    var animationStarted = false;
+    var moduleLoadTimeout = null;
+    var safetyNetTimeout = null;
+    var animationKilled = false;
+
+    // =============================================
+    // CORE FUNCTION: Initialize Gallery CTA
+    // =============================================
+    function initGalleryCta() {
+      var cta = document.querySelector(".gallery-cta-link");
+      if (!cta) return;
+
+      // Reset state
+      gsapReady = false;
+      scrollTriggerReady = false;
+      animationStarted = false;
+      animationKilled = false;
+
+      // =============================================
+      // CHECK 1: Prefers Reduced Motion
+      // =============================================
+      var prefersReduced = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+      if (prefersReduced) {
+        cta.style.opacity = "1";
+        cta.style.transform = "translateY(0)";
+        cta.style.visibility = "visible";
+        return;
+      }
+
+      // =============================================
+      // CHECK 2: Performance Tier — Skip animation on LOW/BATTERY_SAVER
+      // =============================================
+      var tier = sessionStorage.getItem("cloudsi_perf_tier") || "NORMAL";
+      if (tier === "BATTERY_SAVER") {
+        cta.style.opacity = "1";
+        cta.style.transform = "translateY(0)";
+        cta.style.visibility = "visible";
+        return;
+      }
+
+      // =============================================
+      // CHECK 3: Set Immediate Fallback Styles
+      // =============================================
+      cta.style.opacity = "1";
+      cta.style.transform = "translateY(0)";
+      cta.style.visibility = "visible";
+
+      // =============================================
+      // LOW tier: fade-in only, no scroll-linked
+      // =============================================
+      if (tier === "LOW") {
+        return; // Already visible, no GSAP animation
+      }
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", initGalleryCta);
+    } else {
+      initGalleryCta();
+    }
+
+    document.addEventListener("astro:after-swap", initGalleryCta);
+  })();
+</script>

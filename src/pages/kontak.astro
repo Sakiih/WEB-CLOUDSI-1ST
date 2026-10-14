@@ -1,0 +1,27 @@
+---
+/**
+ * kontak.astro
+ * Halaman Kontak — form pesan dan info kontak
+ * Dependencies: BaseLayout, Header, Footer, Contact section
+ */
+
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Footer from '../components/layout/Footer.astro';
+import PageTransition from '../components/layout/PageTransition.astro';
+import Contact from '../components/sections/Contact.astro';
+---
+
+<BaseLayout title="Kontak | Cloudsi | Sistem Informasi Untan" description="Dalam satu ruang kami adalah keluarga besar Sistem Informasi Universitas Tanjungpura, penggerak teknologi masa depan.">
+  <PageTransition>
+    <main id="main-content" class="page-offset">
+      <Contact />
+    </main>
+  </PageTransition>
+  <Footer />
+</BaseLayout>
+
+<style>
+  .page-offset {
+    padding-top: 5rem;
+  }
+</style>

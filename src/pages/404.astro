@@ -1,0 +1,75 @@
+---
+/**
+ * 404.astro
+ * Halaman Not Found custom (error 404)
+ */
+
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Footer from '../components/layout/Footer.astro';
+import Button from '../components/ui/Button.astro';
+import PageTransition from '../components/layout/PageTransition.astro';
+---
+
+<BaseLayout title="404 | Cloudsi | Sistem Informasi Untan" description="Dalam satu ruang kami adalah keluarga besar Sistem Informasi Universitas Tanjungpura, penggerak teknologi masa depan.">
+  <PageTransition>
+    <main class="error-page section-pad flex-center">
+      <div class="error-content fade-in">
+        <h1 class="error-code text-gradient-water">404</h1>
+        <h2 class="error-title">Halaman Tidak Ditemukan</h2>
+        <p class="error-desc text-body">
+          Maaf, rute eksplorasi yang Anda tuju sepertinya tidak terdaftar di sistem kami, atau mungkin telah dipindahkan.
+        </p>
+        <div class="error-action">
+          <Button variant="primary" href="/">Kembali ke Beranda</Button>
+        </div>
+      </div>
+    </main>
+  </PageTransition>
+  <Footer />
+</BaseLayout>
+
+<style>
+  .error-page {
+    min-height: 80vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding-top: 100px;
+  }
+
+  .error-content {
+    max-width: 500px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    z-index: 10;
+  }
+
+  .error-code {
+    font-family: var(--font-display);
+    font-size: 8rem;
+    line-height: 1;
+    font-weight: 300;
+    margin: 0;
+  }
+
+  .error-title {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    color: white;
+    margin: 0;
+  }
+
+  .error-desc {
+    color: hsla(0,0%,100%,0.6);
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+  }
+
+  @media (min-width: 768px) {
+    .error-code { font-size: 10rem; }
+    .error-title { font-size: 2.5rem; }
+  }
+</style>
